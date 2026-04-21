@@ -24,7 +24,7 @@ import {
   Download,
   Users
 } from 'lucide-react';
-import AdminLayout from '@/components/Admin/AdminLayout';
+import AdminLayout from '@/components/admin/AdminLayout';
 import { toast } from 'sonner';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
@@ -83,7 +83,7 @@ export default function AdminUsersClient() {
       setLoading(true);
       const q = query(collection(firestore, 'users'), where('role', 'in', ['admin', 'staff', 'manager']));
       const snap = await getDocs(q);
-      setUsers(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+      setUsers(snap.docs.map(doc => ({ id: doc.id, ...(doc.data() as any) })));
     } catch (error) {
       console.error("Error fetching staff:", error);
     } finally {

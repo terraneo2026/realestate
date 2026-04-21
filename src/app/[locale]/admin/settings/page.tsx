@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import AdminLayout from '@/components/Admin/AdminLayout';
+import AdminLayout from '@/components/admin/AdminLayout';
 import { Settings, Shield, Bell, Globe, Database, Save } from 'lucide-react';
 
 export default function AdminSettingsPage() {

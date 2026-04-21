@@ -25,7 +25,7 @@ import {
   Mail,
   MoreVertical
 } from 'lucide-react';
-import AdminLayout from '@/components/Admin/AdminLayout';
+import AdminLayout from '@/components/admin/AdminLayout';
 import { toast } from 'sonner';
 import { exportToCSV } from '@/lib/export';
 import { clsx, type ClassValue } from 'clsx';
@@ -56,7 +56,7 @@ export default function AdminSubscriptionsClient() {
       // Fetch users with active plans
       const q = query(collection(firestore, 'users'), where('plan', '!=', 'free'));
       const snap = await getDocs(q);
-      const fetched = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      const fetched = snap.docs.map(doc => ({ id: doc.id, ...(doc.data() as any) }));
       
       setSubscriptions(fetched);
       

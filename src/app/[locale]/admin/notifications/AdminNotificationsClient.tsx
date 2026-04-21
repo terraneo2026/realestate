@@ -24,7 +24,7 @@ import {
   Check
 } from 'lucide-react';
 import Link from 'next/link';
-import AdminLayout from '@/components/Admin/AdminLayout';
+import AdminLayout from '@/components/admin/AdminLayout';
 import { toast } from 'sonner';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
@@ -46,7 +46,7 @@ export default function AdminNotificationsClient() {
     );
 
     const unsubscribe = onSnapshot(q, (snap) => {
-      setNotifications(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+      setNotifications(snap.docs.map(doc => ({ id: doc.id, ...(doc.data() as any) })));
       setLoading(false);
     });
 

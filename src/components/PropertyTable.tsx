@@ -70,7 +70,7 @@ const PropertyTable = ({ role }: PropertyTableProps) => {
         where("ownerId", "==", userId)
       );
       const propSnap = await getDocs(q);
-      setProperties(propSnap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+      setProperties(propSnap.docs.map(doc => ({ id: doc.id, ...(doc.data() as any) })));
     } catch (error) {
       console.error("Error fetching properties:", error);
       toast.error("Failed to load properties");
@@ -315,7 +315,5 @@ const PropertyTable = ({ role }: PropertyTableProps) => {
     </DashboardLayout>
   );
 };
-
-export default PropertyTable;
 
 export default PropertyTable;

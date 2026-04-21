@@ -39,7 +39,7 @@ import {
   Map,
   ChevronDown
 } from 'lucide-react';
-import AdminLayout from '@/components/Admin/AdminLayout';
+import AdminLayout from '@/components/admin/AdminLayout';
 import { toast } from 'sonner';
 import { exportToCSV } from '@/lib/export';
 import { clsx, type ClassValue } from 'clsx';
@@ -105,7 +105,7 @@ export default function AdminAgentsClient() {
       setLoading(true);
       const q = query(collection(firestore, 'users'), where('role', '==', 'agent'));
       const snap = await getDocs(q);
-      const fetched = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      const fetched = snap.docs.map(doc => ({ id: doc.id, ...(doc.data() as any) }));
       
       fetched.sort((a: any, b: any) => {
         const dateA = a.createdAt?.toDate ? a.createdAt.toDate() : new Date(a.createdAt || 0);

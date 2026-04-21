@@ -23,7 +23,7 @@ import {
   Tag,
   ArrowRight
 } from 'lucide-react';
-import AdminLayout from '@/components/Admin/AdminLayout';
+import AdminLayout from '@/components/admin/AdminLayout';
 import { toast } from 'sonner';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
@@ -53,7 +53,7 @@ export default function AdminEnquiriesClient() {
       }
 
       const snap = await getDocs(q);
-      setEnquiries(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+      setEnquiries(snap.docs.map(doc => ({ id: doc.id, ...(doc.data() as any) })));
     } catch (error) {
       console.error("Error fetching enquiries:", error);
       toast.error("Failed to load enquiries");

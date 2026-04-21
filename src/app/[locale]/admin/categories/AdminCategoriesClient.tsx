@@ -22,7 +22,7 @@ import {
   MoreVertical,
   Layers
 } from 'lucide-react';
-import AdminLayout from '@/components/Admin/AdminLayout';
+import AdminLayout from '@/components/admin/AdminLayout';
 import { toast } from 'sonner';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
@@ -55,7 +55,7 @@ export default function AdminCategoriesClient() {
       setLoading(true);
       const q = query(collection(firestore, 'categories'), orderBy('order', 'asc'));
       const snap = await getDocs(q);
-      setCategories(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+      setCategories(snap.docs.map(doc => ({ id: doc.id, ...(doc.data() as any) })));
     } catch (error) {
       console.error("Error fetching categories:", error);
       toast.error("Failed to load categories");

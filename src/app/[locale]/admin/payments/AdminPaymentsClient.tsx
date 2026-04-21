@@ -35,7 +35,7 @@ import {
   Receipt,
   History
 } from 'lucide-react';
-import AdminLayout from '@/components/Admin/AdminLayout';
+import AdminLayout from '@/components/admin/AdminLayout';
 import { toast } from 'sonner';
 import { exportToCSV } from '@/lib/export';
 import { clsx, type ClassValue } from 'clsx';
@@ -73,7 +73,7 @@ export default function AdminPaymentsClient() {
       setLoading(true);
       const q = collection(firestore, 'payments');
       const snap = await getDocs(q as any);
-      const fetched = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      const fetched = snap.docs.map(doc => ({ id: doc.id, ...(doc.data() as any) }));
       
       fetched.sort((a: any, b: any) => {
         const dateA = a.createdAt?.toDate ? a.createdAt.toDate() : new Date(a.createdAt || 0);

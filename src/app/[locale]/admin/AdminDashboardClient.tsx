@@ -44,7 +44,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import AdminLayout from '@/components/Admin/AdminLayout';
+import AdminLayout from '@/components/admin/AdminLayout';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
@@ -292,11 +292,11 @@ export default function AdminDashboardClient() {
         getDocs(collection(firestore, 'enquiries'))
       ]);
 
-      const props = propsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      const users = usersSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      const payments = paymentsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      const enquiries = enquiriesSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      const bookings = bookingsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      const props = propsSnap.docs.map(doc => ({ id: doc.id, ...(doc.data() as any) }));
+      const users = usersSnap.docs.map(doc => ({ id: doc.id, ...(doc.data() as any) }));
+      const payments = paymentsSnap.docs.map(doc => ({ id: doc.id, ...(doc.data() as any) }));
+      const enquiries = enquiriesSnap.docs.map(doc => ({ id: doc.id, ...(doc.data() as any) }));
+      const bookings = bookingsSnap.docs.map(doc => ({ id: doc.id, ...(doc.data() as any) }));
 
       // Calculate stats
       const newStats = {
@@ -326,7 +326,7 @@ export default function AdminDashboardClient() {
       // Fetch recent properties for highlight
       const recentPropsQ = query(collection(firestore, 'properties'), orderBy('createdAt', 'desc'), limit(3));
       const recentPropsSnap = await getDocs(recentPropsQ);
-      const fetchedRecentProps = recentPropsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      const fetchedRecentProps = recentPropsSnap.docs.map(doc => ({ id: doc.id, ...(doc.data() as any) }));
       setRecentProperties(fetchedRecentProps);
 
       // Real Lease Alerts: Properties with leaseEnd within 30 days

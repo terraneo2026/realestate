@@ -22,7 +22,7 @@ import {
   Users,
   MessageSquare
 } from 'lucide-react';
-import AdminLayout from '@/components/Admin/AdminLayout';
+import AdminLayout from '@/components/admin/AdminLayout';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
@@ -54,7 +54,7 @@ export default function AdminReportsClient() {
       ]);
 
       const successfulPayments = paymentsSnap.docs
-        .map(doc => doc.data())
+        .map(doc => ({ id: doc.id, ...(doc.data() as any) }))
         .filter((p: any) => p.status === 'completed' || p.status === 'success');
 
       setStats({

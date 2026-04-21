@@ -37,7 +37,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import AdminLayout from '@/components/Admin/AdminLayout';
+import AdminLayout from '@/components/admin/AdminLayout';
 import { toast } from 'sonner';
 import { exportToCSV } from '@/lib/export';
 import { clsx, type ClassValue } from 'clsx';
@@ -117,7 +117,7 @@ export default function AdminCustomersClient() {
       let q = collection(firestore, 'users');
       
       const snap = await getDocs(q as any);
-      let fetched = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      let fetched = snap.docs.map(doc => ({ id: doc.id, ...(doc.data() as any) }));
       
       // Client side role filtering to maintain consistency with properties page
       if (activeTab !== 'all') {
