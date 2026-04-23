@@ -46,30 +46,38 @@ export default function PropertyList({
         // If the index isn't ready, we'll sort on the client side.
         const q = query(
           collection(firestore, "properties"), 
-          where("status", "==", "active")
+          where("status", "in", ["active", "published", "approved"])
         );
         const querySnapshot = await getDocs(q);
         
         const transformedProperties: Property[] = querySnapshot.docs.map((doc) => {
           const data = doc.data();
+          // Extract location string from nested object if needed
+          const locationStr = data.address || 
+                             (data.location && typeof data.location === 'object' 
+                               ? `${data.location.area || ''} ${data.location.city || ''}`.trim() 
+                               : data.location) || 
+                             data.city || 
+                             "Location N/A";
+
           return {
             id: doc.id,
             title: data.title || "Untitled Property",
-            price: Number(data.price) || 0,
-            location: data.address || data.city || data.location || "Location N/A",
-            image: data.image || (data.images && data.images[0]) || "/placeholder.svg",
+            price: Number(data.price || data.budget) || 0,
+            location: locationStr,
+            image: data.coverImage || data.image || (data.images && data.images[0]) || "/placeholder.svg",
             type: data.type || "Apartment",
-            bedrooms: Number(data.bedrooms) || 0,
-            bathrooms: Number(data.bathrooms) || 0,
-            sqft: Number(data.size_sqft || data.area_sqft || data.sqft) || 0,
+            bedrooms: Number(data.totalBedrooms || data.bedrooms?.length || data.bedrooms) || 0,
+            bathrooms: Number(data.commonBathrooms || data.bathrooms) || 0,
+            sqft: Number(data.size_sqft || data.area_sqft || data.sqft || data.totalArea) || 0,
             slug: data.slug || doc.id,
-            postedBy: data.postedBy || 'Individual',
+            postedBy: data.ownerName || data.postedBy || 'Individual',
             possession: data.possession || 'Ready to move',
             furnishing: data.furnishing || 'Unfurnished',
             facing: data.facing || 'East',
             images: data.images || [],
             status: data.status || 'active',
-            createdAt: data.created_at?.toDate() || new Date(0)
+            createdAt: (data.createdAt || data.created_at)?.toDate?.() || new Date(data.createdAt || data.created_at || 0)
           };
         });
 

@@ -23,6 +23,9 @@ const AddProperty = () => {
     title: '',
     description: '',
     category_id: '',
+    propertyType: 'Apartment',
+    ownerName: '',
+    ownerMobile: '',
     price: '',
     address: '',
     propery_type: 0, // 0 for Sell, 1 for Rent (as per Laravel)
@@ -151,9 +154,15 @@ const AddProperty = () => {
       await addDoc(collection(db, 'properties'), {
         ...formData,
         price: parseFloat(formData.price),
+        budget: parseFloat(formData.price), // Support both price and budget fields
         image: imageUrls[0], // Main image
         images: imageUrls, // All images
         company_name: formData.published_by_admin ? 'Relocate' : '',
+        status: 'approved', // Admin added properties are approved by default
+        city: formData.address.split(',').pop()?.trim() || '', // Try to extract city from address
+        category: categories.find(c => c.id === formData.category_id)?.category || '',
+        createdAt: new Date(),
+        updatedAt: new Date(),
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       });
@@ -215,6 +224,53 @@ const AddProperty = () => {
                     <ChevronDown size={18} />
                   </div>
                 </div>
+              </div>
+
+              <div className="space-y-4">
+                <label className="text-sm font-black text-gray-400  tracking-widest ml-1">Property Type</label>
+                <div className="relative">
+                  <select
+                    required
+                    className="w-full px-6 py-4 bg-gray-50 border border-gray-100 rounded-2xl focus:border-[#087C7C] focus:ring-4 focus:ring-[#087C7C]/10 outline-none transition-all font-bold text-gray-800 appearance-none cursor-pointer pr-12"
+                    value={formData.propertyType}
+                    onChange={(e) => setFormData({ ...formData, propertyType: e.target.value })}
+                  >
+                    <option value="Apartment">Apartment</option>
+                    <option value="Villa">Villa</option>
+                    <option value="Penthouse">Penthouse</option>
+                    <option value="Studio">Studio</option>
+                    <option value="Office Space">Office Space</option>
+                    <option value="Shop">Shop</option>
+                    <option value="Warehouse">Warehouse</option>
+                  </select>
+                  <div className="absolute inset-y-0 right-0 flex items-center pr-4 pointer-events-none text-gray-400">
+                    <ChevronDown size={18} />
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <label className="text-sm font-black text-gray-400  tracking-widest ml-1">Owner Name</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Enter owner name"
+                  className="w-full px-6 py-4 bg-gray-50 border border-gray-100 rounded-2xl focus:border-[#087C7C] focus:ring-4 focus:ring-[#087C7C]/10 outline-none transition-all font-bold text-gray-800 placeholder:text-gray-300"
+                  value={formData.ownerName}
+                  onChange={(e) => setFormData({ ...formData, ownerName: e.target.value })}
+                />
+              </div>
+
+              <div className="space-y-4">
+                <label className="text-sm font-black text-gray-400  tracking-widest ml-1">Owner Contact</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="10 digit mobile number"
+                  className="w-full px-6 py-4 bg-gray-50 border border-gray-100 rounded-2xl focus:border-[#087C7C] focus:ring-4 focus:ring-[#087C7C]/10 outline-none transition-all font-bold text-gray-800 placeholder:text-gray-300"
+                  value={formData.ownerMobile}
+                  onChange={(e) => setFormData({ ...formData, ownerMobile: e.target.value })}
+                />
               </div>
 
               <div className="space-y-4">

@@ -9,7 +9,7 @@ interface RegisterClientProps {
 
 export default function RegisterClient({ locale }: RegisterClientProps) {
   const searchParams = useSearchParams();
-  const roleParam = searchParams.get('role');
+  const roleParam = searchParams?.get('role');
   
   // Valid roles: tenant, owner, agent
   const validRoles = ['tenant', 'owner', 'agent'];

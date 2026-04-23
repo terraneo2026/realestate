@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { firestore } from '@/lib/firebase';
-import { collection, query, getDocs, where, orderBy, limit, doc, updateDoc } from 'firebase/firestore';
+import { collection, query, getDocs, where, orderBy, limit, doc, updateDoc, onSnapshot } from 'firebase/firestore';
 import { 
   CreditCard, 
   Search, 
@@ -33,7 +33,9 @@ import {
   X,
   RotateCcw,
   Receipt,
-  History
+  History,
+  MapPin,
+  Mail
 } from 'lucide-react';
 import AdminLayout from '@/components/admin/AdminLayout';
 import { toast } from 'sonner';
@@ -65,14 +67,8 @@ export default function AdminPaymentsClient() {
   });
 
   useEffect(() => {
-    fetchPayments();
-  }, []);
-
-  const fetchPayments = async () => {
-    try {
-      setLoading(true);
-      const q = collection(firestore, 'payments');
-      const snap = await getDocs(q as any);
+    const q = collection(firestore, 'payments');
+    const unsubscribe = onSnapshot(q, (snap) => {
       const fetched = snap.docs.map(doc => ({ id: doc.id, ...(doc.data() as any) }));
       
       fetched.sort((a: any, b: any) => {
@@ -95,14 +91,15 @@ export default function AdminPaymentsClient() {
         refundAmount: totalRefund,
         avgTransaction: successful.length > 0 ? totalRev / successful.length : 0
       });
-
-    } catch (error) {
+      setLoading(false);
+    }, (error) => {
       console.error("Error fetching payments:", error);
       toast.error("Failed to load payment history");
-    } finally {
       setLoading(false);
-    }
-  };
+    });
+
+    return () => unsubscribe();
+  }, []);
 
   const filteredPayments = payments.filter(p => {
     const matchesSearch = (p.transactionId || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -138,7 +135,6 @@ export default function AdminPaymentsClient() {
         updatedAt: new Date()
       });
       toast.success("Refund initiated successfully");
-      fetchPayments();
     } catch (error) {
       toast.error("Refund failed");
     }
@@ -160,7 +156,7 @@ export default function AdminPaymentsClient() {
            >
               <Download size={18} /> Export CSV
            </button>
-           <button onClick={fetchPayments} className="h-14 w-14 bg-primary text-white rounded-2xl flex items-center justify-center shadow-xl shadow-primary/20 hover:rotate-180 transition-all duration-500">
+           <button className="h-14 w-14 bg-primary text-white rounded-2xl flex items-center justify-center shadow-xl shadow-primary/20 hover:rotate-180 transition-all duration-500">
               <RefreshCcw size={20} />
            </button>
         </div>

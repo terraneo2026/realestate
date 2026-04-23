@@ -1,7 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import AdminLayout from '@/admin/components/AdminLayout';
 import { db as firestore } from '@/admin/lib/firebase';
-import { collection, query, getDocs, where, doc, updateDoc, deleteDoc, orderBy } from 'firebase/firestore';
+import { collection, query, getDocs, where, doc, updateDoc, deleteDoc, orderBy, addDoc, onSnapshot } from 'firebase/firestore';
 import { 
   Users, 
   Search, 
@@ -46,21 +46,23 @@ function cn(...inputs) {
 const AdminCustomers = () => {
   const router = useRouter();
   const [users, setUsers] = useState([]);
+  const [properties, setProperties] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
-  const [stats, setStats] = useState({
-    total: 0,
-    tenants: 0,
-    owners: 0,
-    agents: 0,
-    verified: 0,
-  });
   const [selectedUser, setSelectedUser] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
+  const [isAdding, setIsAdding] = useState(false);
   const [editForm, setEditForm] = useState(null);
+  const [newUserForm, setNewUserForm] = useState({
+    fullName: '',
+    email: '',
+    mobile: '',
+    role: 'tenant',
+    accountStatus: 'active',
+    kyc_status: 'unverified'
+  });
   const [saving, setSaving] = useState(false);
-  const [userInsights, setUserInsights] = useState({});
 
   const roles = [
     { id: 'all', label: 'All Users' },
@@ -69,69 +71,75 @@ const AdminCustomers = () => {
     { id: 'agent', label: 'Agents' },
   ];
 
+  // Real-time Users Listener
   useEffect(() => {
-    fetchUsers();
-  }, [activeTab]);
-
-  const fetchUserInsights = async (userList) => {
-    try {
-      const insights = {};
-      const propsSnap = await getDocs(collection(firestore, 'properties'));
-      const allProps = propsSnap.docs.map(d => d.data());
-      
-      userList.forEach(user => {
-        if (user.role === 'owner' || user.role === 'agent') {
-          insights[user.id] = {
-            type: 'listings',
-            count: allProps.filter(p => p.ownerId === user.id || p.agentId === user.id).length
-          };
-        } else if (user.role === 'tenant') {
-          insights[user.id] = {
-            type: 'bookings',
-            count: 0 
-          };
-        }
-      });
-      setUserInsights(insights);
-    } catch (error) {
-      console.error("Error fetching user insights:", error);
-    }
-  };
-
-  const fetchUsers = async () => {
-    try {
-      setLoading(true);
-      const q = collection(firestore, 'users');
-      const snap = await getDocs(q);
-      let fetched = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      
-      if (activeTab !== 'all') {
-        fetched = fetched.filter(u => u.role === activeTab);
-      }
-
+    const q = query(collection(firestore, 'users'));
+    const unsubscribe = onSnapshot(q, (snap) => {
+      const fetched = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       fetched.sort((a, b) => {
         const dateA = a.createdAt?.toDate ? a.createdAt.toDate() : new Date(a.createdAt || 0);
         const dateB = b.createdAt?.toDate ? b.createdAt.toDate() : new Date(b.createdAt || 0);
         return dateB - dateA;
       });
-
       setUsers(fetched);
-      fetchUserInsights(fetched);
-      
-      setStats({
-        total: fetched.length,
-        tenants: fetched.filter(u => u.role === 'tenant').length,
-        owners: fetched.filter(u => u.role === 'owner').length,
-        agents: fetched.filter(u => u.role === 'agent').length,
-        verified: fetched.filter(u => u.kyc_status === 'verified').length,
-      });
-    } catch (error) {
+      setLoading(false);
+    }, (error) => {
       console.error("Error fetching users:", error);
       toast.error("Failed to load users");
-    } finally {
       setLoading(false);
-    }
-  };
+    });
+    return () => unsubscribe();
+  }, []);
+
+  // Real-time Properties Listener (for insights)
+  useEffect(() => {
+    const q = query(collection(firestore, 'properties'));
+    const unsubscribe = onSnapshot(q, (snap) => {
+      setProperties(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+    });
+    return () => unsubscribe();
+  }, []);
+
+  // Optimized Derived Data
+  const stats = useMemo(() => {
+    return {
+      total: users.length,
+      tenants: users.filter(u => u.role === 'tenant').length,
+      owners: users.filter(u => u.role === 'owner').length,
+      agents: users.filter(u => u.role === 'agent').length,
+      verified: users.filter(u => u.kyc_status === 'verified').length,
+    };
+  }, [users]);
+
+  const userInsights = useMemo(() => {
+    const insights = {};
+    users.forEach(user => {
+      if (user.role === 'owner' || user.role === 'agent') {
+        insights[user.id] = {
+          type: 'listings',
+          count: properties.filter(p => p.ownerId === user.id || p.agentId === user.id).length
+        };
+      } else if (user.role === 'tenant') {
+        insights[user.id] = {
+          type: 'bookings',
+          count: 0 
+        };
+      }
+    });
+    return insights;
+  }, [users, properties]);
+
+  const filteredUsers = useMemo(() => {
+    return users.filter(u => {
+      const name = u.fullName || u.name || '';
+      const matchesTab = activeTab === 'all' || u.role === activeTab;
+      const matchesSearch = 
+        name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (u.email || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (u.mobile || '').includes(searchTerm);
+      return matchesTab && matchesSearch;
+    });
+  }, [users, activeTab, searchTerm]);
 
   const handleStatusUpdate = async (userId, updates) => {
     try {
@@ -144,6 +152,40 @@ const AdminCustomers = () => {
     } catch (error) {
       console.error("Error updating user:", error);
       toast.error("Failed to update user");
+    }
+  };
+
+  const handleAddUser = async (e) => {
+    e.preventDefault();
+    if (!newUserForm.fullName || !newUserForm.email) {
+      toast.error("Please fill in required fields");
+      return;
+    }
+    setSaving(true);
+    try {
+      const docRef = await addDoc(collection(firestore, 'users'), {
+        ...newUserForm,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        isVerified: false
+      });
+      
+      const newUser = { id: docRef.id, ...newUserForm };
+      toast.success("New user created successfully");
+      setIsAdding(false);
+      setNewUserForm({
+        fullName: '',
+        email: '',
+        mobile: '',
+        role: 'tenant',
+        accountStatus: 'active',
+        kyc_status: 'unverified'
+      });
+    } catch (error) {
+      console.error("Error adding user:", error);
+      toast.error("Failed to create user");
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -180,12 +222,6 @@ const AdminCustomers = () => {
     }
   };
 
-  const filteredUsers = users.filter(u => 
-    (u.fullName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (u.email || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (u.mobile || '').includes(searchTerm)
-  );
-
   return (
     <AdminLayout>
       <div className="mb-12 flex flex-col md:flex-row md:items-end justify-between gap-8">
@@ -202,7 +238,10 @@ const AdminCustomers = () => {
            >
               <Download size={18} /> Export List
            </button>
-           <button className="h-14 px-8 bg-[#087c7c] text-white rounded-2xl font-bold text-xs tracking-tight flex items-center gap-2 shadow-xl shadow-[#087c7c]/20 hover:scale-105 active:scale-95 transition-all">
+           <button 
+             onClick={() => setIsAdding(true)}
+             className="h-14 px-8 bg-[#087c7c] text-white rounded-2xl font-bold text-xs tracking-tight flex items-center gap-2 shadow-xl shadow-[#087c7c]/20 hover:scale-105 active:scale-95 transition-all"
+           >
               <UserPlus size={18} /> Create User
            </button>
         </div>
@@ -276,14 +315,14 @@ const AdminCustomers = () => {
                       <td className="px-10 py-8">
                          <div className="flex items-center gap-6">
                             <div className="w-16 h-16 bg-gray-50 rounded-[1.5rem] flex items-center justify-center text-[#087c7c] font-bold text-xl shadow-sm border border-gray-100 group-hover:bg-[#087c7c] group-hover:text-white transition-all">
-                               {user.fullName?.charAt(0).toUpperCase() || 'U'}
+                               {(user.fullName || user.name || 'U').charAt(0).toUpperCase()}
                             </div>
                             <div className="min-w-0">
-                               <h4 className="font-bold text-gray-900 text-sm tracking-tight truncate max-w-[200px] leading-tight mb-1">{user.fullName || 'Anonymous'}</h4>
+                               <h4 className="font-bold text-gray-900 text-sm tracking-tight truncate max-w-[200px] leading-tight mb-1">{user.fullName || user.name || 'Anonymous'}</h4>
                                <p className="text-xs font-bold text-gray-400 tracking-tight">UID: {user.id.slice(0, 10)}</p>
                                <div className="flex items-center gap-2 mt-2">
                                   <Calendar size={10} className="text-gray-300" />
-                                  <span className="text-xs font-bold text-gray-300 tracking-tight">Joined: {user.createdAt?.toDate ? new Date(user.createdAt.toDate()).toLocaleDateString() : 'Recent'}</span>
+                                  <span className="text-xs font-bold text-gray-300 tracking-tight">Joined: {user.createdAt?.toDate ? new Date(user.createdAt.toDate()).toLocaleDateString() : (user.created_at?.toDate ? new Date(user.created_at.toDate()).toLocaleDateString() : 'Recent')}</span>
                                </div>
                             </div>
                          </div>
@@ -430,6 +469,91 @@ const AdminCustomers = () => {
            </div>
         </div>
       </div>
+
+      {/* Add New User Modal */}
+      {isAdding && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/60 backdrop-blur-md">
+           <div className="bg-white w-full max-w-2xl rounded-[3rem] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300">
+              <div className="p-10 border-b border-gray-50 flex justify-between items-center">
+                 <div>
+                    <h2 className="text-3xl font-bold text-gray-900 tracking-tight">Create New User</h2>
+                    <p className="text-xs font-bold text-gray-400 tracking-tight mt-1">Register a new platform participant</p>
+                 </div>
+                 <button onClick={() => setIsAdding(false)} className="p-3 hover:bg-gray-50 rounded-2xl transition-all text-gray-400"><X size={32} /></button>
+              </div>
+              
+              <form onSubmit={handleAddUser} className="p-10 space-y-8">
+                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                       <label className="text-xs font-bold text-gray-400 ml-2">Full Name *</label>
+                       <input 
+                         type="text" 
+                         required
+                         placeholder="e.g. Jane Doe"
+                         className="w-full px-6 py-4 bg-gray-50 border border-gray-100 rounded-2xl focus:border-[#087c7c] outline-none font-bold text-sm"
+                         value={newUserForm.fullName}
+                         onChange={(e) => setNewUserForm({...newUserForm, fullName: e.target.value})}
+                       />
+                    </div>
+                    <div className="space-y-2">
+                       <label className="text-xs font-bold text-gray-400 ml-2">Email Address *</label>
+                       <input 
+                         type="email" 
+                         required
+                         placeholder="e.g. jane@example.com"
+                         className="w-full px-6 py-4 bg-gray-50 border border-gray-100 rounded-2xl focus:border-[#087c7c] outline-none font-bold text-sm"
+                         value={newUserForm.email}
+                         onChange={(e) => setNewUserForm({...newUserForm, email: e.target.value})}
+                       />
+                    </div>
+                    <div className="space-y-2">
+                       <label className="text-xs font-bold text-gray-400 ml-2">Mobile Number</label>
+                       <input 
+                         type="text" 
+                         placeholder="e.g. +91 98765 43210"
+                         className="w-full px-6 py-4 bg-gray-50 border border-gray-100 rounded-2xl focus:border-[#087c7c] outline-none font-bold text-sm"
+                         value={newUserForm.mobile}
+                         onChange={(e) => setNewUserForm({...newUserForm, mobile: e.target.value})}
+                       />
+                    </div>
+                    <div className="space-y-2">
+                       <label className="text-xs font-bold text-gray-400 ml-2">User Role</label>
+                       <div className="relative group">
+                          <select 
+                            className="w-full px-8 py-4 bg-gray-50 border-2 border-gray-50 rounded-2xl focus:border-[#087c7c] outline-none font-bold text-sm appearance-none cursor-pointer focus:bg-white transition-all"
+                            value={newUserForm.role}
+                            onChange={(e) => setNewUserForm({...newUserForm, role: e.target.value})}
+                          >
+                             <option value="tenant">Tenant</option>
+                             <option value="owner">Owner</option>
+                             <option value="agent">Agent</option>
+                          </select>
+                          <ChevronDown size={18} className="absolute right-6 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none group-focus-within:text-[#087c7c] transition-colors" />
+                       </div>
+                    </div>
+                 </div>
+
+                 <div className="flex justify-end gap-4 pt-4">
+                    <button 
+                      type="button"
+                      onClick={() => setIsAdding(false)}
+                      className="px-8 py-4 bg-white border-2 border-gray-100 rounded-2xl font-bold text-xs tracking-tight text-gray-400 hover:bg-gray-50 transition-all"
+                    >
+                       Cancel
+                    </button>
+                    <button 
+                      type="submit"
+                      disabled={saving}
+                      className="px-10 py-4 bg-[#087c7c] text-white rounded-2xl font-bold text-xs tracking-tight shadow-xl shadow-[#087c7c]/20 hover:bg-[#087c7c]/90 transition-all flex items-center gap-2"
+                    >
+                       {saving ? <Loader2 className="animate-spin" size={16} /> : <Check size={16} />}
+                       {saving ? 'Creating user...' : 'Create User'}
+                    </button>
+                 </div>
+              </form>
+           </div>
+        </div>
+      )}
 
       {selectedUser && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/60 backdrop-blur-md">

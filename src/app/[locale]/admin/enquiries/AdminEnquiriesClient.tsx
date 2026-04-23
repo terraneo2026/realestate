@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { firestore } from '@/lib/firebase';
-import { collection, query, getDocs, where, doc, updateDoc, orderBy, limit } from 'firebase/firestore';
+import { collection, query, getDocs, where, doc, updateDoc, orderBy, limit, onSnapshot } from 'firebase/firestore';
 import { 
   MessageSquare, 
   Search, 
@@ -21,7 +21,8 @@ import {
   Loader2,
   ChevronDown,
   Tag,
-  ArrowRight
+  ArrowRight,
+  UserCheck
 } from 'lucide-react';
 import AdminLayout from '@/components/admin/AdminLayout';
 import { toast } from 'sonner';
@@ -40,27 +41,34 @@ export default function AdminEnquiriesClient() {
   const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
-    fetchEnquiries();
-  }, [filterStatus]);
+    let q = query(collection(firestore, 'enquiries'), orderBy('createdAt', 'desc'));
+    
+    if (filterStatus !== 'all') {
+      q = query(q, where('status', '==', filterStatus));
+    }
 
-  const fetchEnquiries = async () => {
-    try {
-      setLoading(true);
-      let q = query(collection(firestore, 'enquiries'), orderBy('createdAt', 'desc'));
+    const unsubscribe = onSnapshot(q, (snap) => {
+      const fetched = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       
-      if (filterStatus !== 'all') {
-        q = query(q, where('status', '==', filterStatus));
-      }
+      fetched.sort((a: any, b: any) => {
+        const getDate = (val: any) => {
+          if (!val) return new Date(0);
+          if (typeof val.toDate === 'function') return val.toDate();
+          return new Date(val);
+        };
+        return getDate(b.createdAt).getTime() - getDate(a.createdAt).getTime();
+      });
 
-      const snap = await getDocs(q);
-      setEnquiries(snap.docs.map(doc => ({ id: doc.id, ...(doc.data() as any) })));
-    } catch (error) {
+      setEnquiries(fetched);
+      setLoading(false);
+    }, (error) => {
       console.error("Error fetching enquiries:", error);
       toast.error("Failed to load enquiries");
-    } finally {
       setLoading(false);
-    }
-  };
+    });
+
+    return () => unsubscribe();
+  }, [filterStatus]);
 
   const handleStatusUpdate = async (id: string, newStatus: string) => {
     try {
@@ -108,7 +116,7 @@ export default function AdminEnquiriesClient() {
         </div>
         <div className="flex gap-4">
            <div className="flex gap-2 bg-white p-2 rounded-2xl shadow-sm border border-gray-100">
-              {['all', 'open', 'resolved', 'closed'].map((status) => (
+              {['all', 'open', 'viewed', 'responded', 'resolved'].map((status) => (
                 <button
                   key={status}
                   onClick={() => setFilterStatus(status)}
@@ -203,6 +211,8 @@ export default function AdminEnquiriesClient() {
                          <div className={cn(
                            "inline-flex items-center gap-1.5 px-4 py-1.5 rounded-xl text-xs font-bold tracking-tight border shadow-sm capitalize",
                            enq.status === 'resolved' ? "bg-green-50 border-green-100 text-green-600" :
+                           enq.status === 'responded' ? "bg-orange-50 border-orange-100 text-orange-600" :
+                           enq.status === 'viewed' ? "bg-blue-50 border-blue-100 text-blue-600" :
                            enq.status === 'open' ? "bg-amber-50 border-amber-100 text-amber-600" :
                            "bg-gray-50 border-gray-100 text-gray-400"
                          )}>
@@ -211,7 +221,25 @@ export default function AdminEnquiriesClient() {
                       </td>
                       <td className="px-10 py-8 text-right">
                          <div className="flex items-center justify-end gap-2">
-                            {enq.status === 'open' && (
+                            {(enq.status === 'open' || !enq.status) && (
+                              <button 
+                                onClick={() => handleStatusUpdate(enq.id, 'viewed')}
+                                className="p-3 bg-white border border-gray-100 text-gray-400 hover:text-blue-500 hover:border-blue-100 rounded-xl shadow-sm transition-all"
+                                title="Mark Viewed"
+                              >
+                                 <Eye size={18} />
+                              </button>
+                            )}
+                            {(enq.status === 'viewed' || enq.status === 'open' || !enq.status) && (
+                              <button 
+                                onClick={() => handleStatusUpdate(enq.id, 'responded')}
+                                className="p-3 bg-white border border-gray-100 text-gray-400 hover:text-orange-500 hover:border-orange-100 rounded-xl shadow-sm transition-all"
+                                title="Mark Responded"
+                              >
+                                 <UserCheck size={18} />
+                              </button>
+                            )}
+                            {enq.status !== 'resolved' && (
                               <button 
                                 onClick={() => handleStatusUpdate(enq.id, 'resolved')}
                                 className="p-3 bg-white border border-gray-100 text-gray-400 hover:text-green-500 hover:border-green-100 rounded-xl shadow-sm transition-all"
@@ -222,9 +250,6 @@ export default function AdminEnquiriesClient() {
                             )}
                             <button className="p-3 bg-white border border-gray-100 text-gray-400 hover:text-primary hover:border-primary/20 rounded-xl shadow-sm transition-all">
                                <Send size={18} />
-                            </button>
-                            <button className="p-3 bg-white border border-gray-100 text-gray-400 hover:text-primary hover:border-primary/20 rounded-xl shadow-sm transition-all">
-                               <Eye size={18} />
                             </button>
                          </div>
                       </td>

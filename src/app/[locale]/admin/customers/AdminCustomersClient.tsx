@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { firestore } from '@/lib/firebase';
-import { collection, query, getDocs, where, doc, updateDoc, deleteDoc, orderBy, limit } from 'firebase/firestore';
+import { collection, query, getDocs, where, doc, updateDoc, deleteDoc, orderBy, limit, onSnapshot } from 'firebase/firestore';
 import { 
   Users, 
   Search, 
@@ -76,50 +76,11 @@ export default function AdminCustomersClient() {
   ];
 
   useEffect(() => {
-    fetchUsers();
-  }, [activeTab]);
-
-  const fetchUserInsights = async (userList: any[]) => {
-    try {
-      const insights: any = {};
-      
-      // For owners, count properties listed
-      const owners = userList.filter(u => u.role === 'owner' || u.role === 'agent');
-      if (owners.length > 0) {
-        const propsSnap = await getDocs(collection(firestore, 'properties'));
-        const allProps = propsSnap.docs.map(d => d.data());
-        
-        userList.forEach(user => {
-          if (user.role === 'owner' || user.role === 'agent') {
-            insights[user.id] = {
-              type: 'listings',
-              count: allProps.filter(p => p.ownerId === user.id || p.agentId === user.id).length
-            };
-          } else if (user.role === 'tenant') {
-            // For tenants, count properties booked (this assumes a 'bookings' collection exists)
-            // For now, we'll initialize with 0 or fetch from a bookings collection if available
-            insights[user.id] = {
-              type: 'bookings',
-              count: 0 // Placeholder until bookings logic is clear
-            };
-          }
-        });
-      }
-      setUserInsights(insights);
-    } catch (error) {
-      console.error("Error fetching user insights:", error);
-    }
-  };
-
-  const fetchUsers = async () => {
-    try {
-      setLoading(true);
-      let q = collection(firestore, 'users');
-      
-      const snap = await getDocs(q as any);
+    const q = collection(firestore, 'users');
+    const unsubscribe = onSnapshot(q, (snap) => {
       let fetched = snap.docs.map(doc => ({ id: doc.id, ...(doc.data() as any) }));
       
-      // Client side role filtering to maintain consistency with properties page
+      // Client side role filtering
       if (activeTab !== 'all') {
         fetched = fetched.filter(u => u.role === activeTab);
       }
@@ -132,22 +93,44 @@ export default function AdminCustomersClient() {
       });
 
       setUsers(fetched);
-      fetchUserInsights(fetched);
       
       setStats({
-        total: fetched.length,
-        tenants: fetched.filter(u => u.role === 'tenant').length,
-        owners: fetched.filter(u => u.role === 'owner').length,
-        agents: fetched.filter(u => u.role === 'agent').length,
-        verified: fetched.filter(u => u.kyc_status === 'verified').length,
+        total: snap.docs.length,
+        tenants: snap.docs.filter(d => d.data().role === 'tenant').length,
+        owners: snap.docs.filter(d => d.data().role === 'owner').length,
+        agents: snap.docs.filter(d => d.data().role === 'agent').length,
+        verified: snap.docs.filter(d => d.data().kyc_status === 'verified').length,
       });
-    } catch (error) {
-      console.error("Error fetching users:", error);
-      toast.error("Failed to load users");
-    } finally {
       setLoading(false);
-    }
-  };
+    });
+
+    return () => unsubscribe();
+  }, [activeTab]);
+
+  useEffect(() => {
+    // Separate listener for property counts to keep insights updated
+    const unsubscribeProps = onSnapshot(collection(firestore, 'properties'), (snap) => {
+      const allProps = snap.docs.map(d => d.data());
+      const insights: any = {};
+      
+      users.forEach(user => {
+        if (user.role === 'owner' || user.role === 'agent') {
+          insights[user.id] = {
+            type: 'listings',
+            count: allProps.filter(p => p.ownerId === user.id || p.agentId === user.id).length
+          };
+        } else if (user.role === 'tenant') {
+          insights[user.id] = {
+            type: 'bookings',
+            count: 0 
+          };
+        }
+      });
+      setUserInsights(insights);
+    });
+
+    return () => unsubscribeProps();
+  }, [users]);
 
   const handleUpdateUser = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -196,11 +179,12 @@ export default function AdminCustomersClient() {
     }
   };
 
-  const filteredUsers = users.filter(u => 
-    u.fullName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    u.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    u.mobile?.includes(searchTerm)
-  );
+  const filteredUsers = users.filter(u => {
+    const name = u.fullName || u.name || '';
+    return name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+           u.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+           u.mobile?.includes(searchTerm);
+  });
 
   return (
     <AdminLayout>
@@ -293,14 +277,14 @@ export default function AdminCustomersClient() {
                       <td className="px-10 py-8">
                          <div className="flex items-center gap-6">
                             <div className="w-16 h-16 bg-gray-50 rounded-[1.5rem] flex items-center justify-center text-primary font-bold text-xl shadow-sm border border-gray-50 group-hover:bg-primary group-hover:text-white transition-all">
-                               {user.fullName?.charAt(0).toUpperCase() || 'U'}
+                               {(user.fullName || user.name || 'U').charAt(0).toUpperCase()}
                             </div>
                             <div className="min-w-0">
-                               <h4 className="font-bold text-gray-900 text-sm tracking-tight truncate max-w-[200px] leading-tight mb-1">{user.fullName || 'Anonymous'}</h4>
+                               <h4 className="font-bold text-gray-900 text-sm tracking-tight truncate max-w-[200px] leading-tight mb-1">{user.fullName || user.name || 'Anonymous'}</h4>
                                <p className="text-xs font-bold text-gray-400 tracking-tight">UID: {user.id.slice(0, 10)}</p>
                                <div className="flex items-center gap-2 mt-2">
                                   <Calendar size={10} className="text-gray-300" />
-                                  <span className="text-xs font-bold text-gray-300 tracking-tight">Joined: {user.createdAt?.toDate ? new Date(user.createdAt.toDate()).toLocaleDateString() : 'Recent'}</span>
+                                  <span className="text-xs font-bold text-gray-300 tracking-tight">Joined: {user.createdAt?.toDate ? new Date(user.createdAt.toDate()).toLocaleDateString() : (user.created_at?.toDate ? new Date(user.created_at.toDate()).toLocaleDateString() : 'Recent')}</span>
                                </div>
                             </div>
                          </div>

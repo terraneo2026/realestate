@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useForm, useFieldArray, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { propertySchema, PropertyFormData } from '@/lib/validations/property';
+import { propertyValidationSchema, PropertyFormData } from '@/lib/validations/property';
 import { auth, firestore, storage } from '@/lib/firebase';
 import { collection, addDoc, serverTimestamp, getDocs, query, orderBy } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
@@ -63,10 +63,16 @@ export default function PropertyForm() {
     trigger,
     formState: { errors, isValid },
   } = useForm<PropertyFormData>({
-    resolver: zodResolver(propertySchema),
+    resolver: zodResolver(propertyValidationSchema) as any,
     defaultValues: {
       projectType: 'existing',
       type: 'rent',
+      propertyType: 'Apartment',
+      category: '',
+      ownerName: '',
+      ownerMobile: '',
+      title: '',
+      budget: 0,
       possessionType: '1m',
       furnishing: 'unfurnished',
       bedrooms: [{
@@ -81,6 +87,14 @@ export default function PropertyForm() {
           features: []
         }
       }],
+      location: {
+        doorNo: '',
+        street: '',
+        area: '',
+        city: '',
+        pincode: '',
+        state: ''
+      },
       projectDetails: {
         park: false,
         playArea: false,
@@ -91,15 +105,32 @@ export default function PropertyForm() {
         powerBackup: true,
         waterSupply: true
       },
+      floors: 1,
+      totalBedrooms: 0,
+      bedroomsWithAttachedBath: 0,
+      bedroomsWithoutAttachedBath: 0,
+      kitchens: 1,
+      halls: 1,
+      commonBathrooms: 0,
+      poojaRooms: 0,
+      drawingRooms: 0,
+      customParameters: [],
       images: [],
-      amenities: []
-    } as any,
+      amenities: [],
+      description: '',
+      coverImage: ''
+    },
     mode: 'onChange'
   });
 
   const { fields: bedroomFields, append: appendBedroom, remove: removeBedroom } = useFieldArray({
     control,
     name: "bedrooms"
+  });
+
+  const { fields: customParamFields, append: appendCustomParam, remove: removeCustomParam } = useFieldArray({
+    control,
+    name: "customParameters"
   });
 
   const watchProjectType = watch('projectType');
@@ -124,7 +155,7 @@ export default function PropertyForm() {
   const nextStep = async () => {
     let fieldsToValidate: any[] = [];
     if (currentStep === 1) {
-      fieldsToValidate = ['title', 'budget', 'category', 'type', 'projectType'];
+      fieldsToValidate = ['title', 'budget', 'category', 'propertyType', 'ownerName', 'ownerMobile', 'type', 'projectType'];
       if (watchProjectType === 'new') fieldsToValidate.push('newProjectName', 'builderName');
     } else if (currentStep === 2) {
       fieldsToValidate = ['bedrooms'];
@@ -205,19 +236,28 @@ export default function PropertyForm() {
       }
 
       // 2. Add Property
+      const isAdmin = pathname.includes('/admin/');
       await addDoc(collection(firestore, 'properties'), {
         ...data,
         projectId: finalProjectId,
         ownerId: user.uid,
-        ownerName: user.displayName || 'Owner',
-        status: 'pending', // Approval workflow
+        ownerName: data.ownerName || user.displayName || 'Owner',
+        ownerMobile: data.ownerMobile || '',
+        status: isAdmin ? 'approved' : 'pending', // Auto-approve if added by admin
         views: 0,
-        created_at: serverTimestamp(),
-        updated_at: serverTimestamp()
+        price: Number(data.budget), // Unified price field
+        address: `${data.location.doorNo}, ${data.location.street}, ${data.location.area}, ${data.location.city}`, // Unified address string
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp()
       });
 
       toast.success("Property listed successfully! Awaiting admin approval.");
-      router.push(`/${locale}/owner/properties`);
+      
+      if (pathname.includes('/admin/')) {
+        router.push(`/${locale}/admin/properties`);
+      } else {
+        router.push(`/${locale}/owner/properties`);
+      }
     } catch (error) {
       console.error("Error submitting property:", error);
       toast.error("Submission failed. Please try again.");
@@ -351,8 +391,54 @@ export default function PropertyForm() {
                      className="w-full px-6 py-4 bg-gray-50 border-2 border-gray-100 rounded-2xl focus:border-primary focus:ring-4 focus:ring-primary/10 outline-none transition-all font-bold"
                    >
                      <option value="">Select Category</option>
-                     {categories.map(c => <option key={c.id} value={c.id}>{c.category}</option>)}
+                     {categories.map(c => <option key={c.id} value={c.id}>{c.category || c.name || 'Untitled Category'}</option>)}
                    </select>
+                </div>
+
+                <div className="space-y-2">
+                   <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Property Type</label>
+                   <select 
+                     {...register('propertyType')}
+                     className="w-full px-6 py-4 bg-gray-50 border-2 border-gray-100 rounded-2xl focus:border-primary focus:ring-4 focus:ring-primary/10 outline-none transition-all font-bold"
+                   >
+                     <option value="Apartment">Apartment</option>
+                     <option value="Villa">Villa</option>
+                     <option value="Penthouse">Penthouse</option>
+                     <option value="Studio">Studio</option>
+                     <option value="Office Space">Office Space</option>
+                     <option value="Shop">Shop</option>
+                     <option value="Warehouse">Warehouse</option>
+                   </select>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Owner Name</label>
+                  <input 
+                    {...register('ownerName')}
+                    className="w-full px-6 py-4 bg-gray-50 border-2 border-gray-100 rounded-2xl focus:border-primary focus:ring-4 focus:ring-primary/10 outline-none transition-all font-bold"
+                    placeholder="Enter owner name"
+                  />
+                  {errors.ownerName && <p className="text-[10px] text-red-500 font-bold">{errors.ownerName.message}</p>}
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Owner Contact</label>
+                  <input 
+                    {...register('ownerMobile')}
+                    className="w-full px-6 py-4 bg-gray-50 border-2 border-gray-100 rounded-2xl focus:border-primary focus:ring-4 focus:ring-primary/10 outline-none transition-all font-bold"
+                    placeholder="10 digit mobile number"
+                  />
+                  {errors.ownerMobile && <p className="text-[10px] text-red-500 font-bold">{errors.ownerMobile.message}</p>}
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Total Rooms (Bedrooms)</label>
+                  <input 
+                    type="number"
+                    {...register('totalBedrooms')}
+                    className="w-full px-6 py-4 bg-gray-50 border-2 border-gray-100 rounded-2xl focus:border-primary focus:ring-4 focus:ring-primary/10 outline-none transition-all font-bold"
+                    placeholder="e.g. 3"
+                  />
                 </div>
 
                 <div className="space-y-4">
@@ -405,6 +491,31 @@ export default function PropertyForm() {
                 >
                   <Plus size={14} /> Add Room
                 </button>
+             </div>
+
+             {/* Global Property Config */}
+             <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-6 mb-12 p-8 bg-gray-50 rounded-[2.5rem] border border-gray-100">
+                {[
+                  { label: 'Total Floors', name: 'floors' },
+                  { label: 'Total Bedrooms', name: 'totalBedrooms' },
+                  { label: 'Bedroom (Attached Bath)', name: 'bedroomsWithAttachedBath' },
+                  { label: 'Bedroom (Common Bath)', name: 'bedroomsWithoutAttachedBath' },
+                  { label: 'Kitchens', name: 'kitchens' },
+                  { label: 'Halls', name: 'halls' },
+                  { label: 'Common Bathrooms', name: 'commonBathrooms' },
+                  { label: 'Pooja Rooms', name: 'poojaRooms' },
+                  { label: 'Drawing Rooms', name: 'drawingRooms' },
+                ].map((item) => (
+                  <div key={item.name} className="space-y-2">
+                    <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-1">{item.label}</label>
+                    <input 
+                      type="number"
+                      {...register(item.name as any)}
+                      className="w-full px-4 py-3 bg-white border-2 border-gray-100 rounded-2xl focus:border-primary outline-none transition-all font-bold"
+                      min={0}
+                    />
+                  </div>
+                ))}
              </div>
 
              <div className="space-y-8">
@@ -471,6 +582,43 @@ export default function PropertyForm() {
                      </div>
                   </div>
                 ))}
+
+                {/* Custom Parameters */}
+                <div className="mt-12 p-8 bg-gray-50 rounded-[2.5rem] border border-gray-100">
+                  <div className="flex justify-between items-center mb-6">
+                    <h4 className="text-sm font-black text-gray-900 uppercase tracking-widest">Custom Parameters</h4>
+                    <button
+                      type="button"
+                      onClick={() => appendCustomParam({ label: '', value: '' })}
+                      className="px-4 py-2 bg-primary/10 text-primary rounded-xl font-black text-[9px] uppercase tracking-widest flex items-center gap-2 hover:bg-primary/20 transition-all"
+                    >
+                      <Plus size={14} /> Add Parameter
+                    </button>
+                  </div>
+                  <div className="space-y-4">
+                    {customParamFields.map((field, index) => (
+                      <div key={field.id} className="flex gap-4 items-center animate-in fade-in slide-in-from-left-2 duration-300">
+                        <input 
+                          {...register(`customParameters.${index}.label` as const)}
+                          placeholder="Label (e.g. Garden Size)"
+                          className="flex-1 px-4 py-3 bg-white border-2 border-gray-100 rounded-xl focus:border-primary outline-none transition-all font-bold text-xs"
+                        />
+                        <input 
+                          {...register(`customParameters.${index}.value` as const)}
+                          placeholder="Value (e.g. 500 sqft)"
+                          className="flex-1 px-4 py-3 bg-white border-2 border-gray-100 rounded-xl focus:border-primary outline-none transition-all font-bold text-xs"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => removeCustomParam(index)}
+                          className="p-3 text-red-400 hover:text-red-600 transition-colors"
+                        >
+                          <X size={18} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
              </div>
           </div>
         )}

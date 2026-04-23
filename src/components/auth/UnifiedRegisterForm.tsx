@@ -75,6 +75,14 @@ export default function UnifiedRegisterForm({ initialRole, locale }: UnifiedRegi
 
       toast.success("Account created successfully!");
       
+      // Save profile to localStorage for UI persistence
+      localStorage.setItem('userProfile', JSON.stringify({
+        fullName: result.fullName,
+        email: result.email,
+        role: result.role,
+        id: result.uid
+      }));
+
       // Dynamic redirect based on role
       const redirectPath = result.role === 'admin' 
         ? `/${locale}/admin` 
@@ -343,7 +351,7 @@ export default function UnifiedRegisterForm({ initialRole, locale }: UnifiedRegi
  
         <p className="mt-8 text-center text-xs font-bold text-gray-500 tracking-widest uppercase">
           Already have an account?{" "}
-          <Link href={`/${locale}/login`} className="text-primary font-black hover:underline ml-1">Sign in</Link>
+          <Link href={`/${locale}/${role}/login`} className="text-primary font-black hover:underline ml-1">Sign in</Link>
         </p>
       </div>
     </div>

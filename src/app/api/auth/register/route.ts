@@ -61,16 +61,22 @@ export async function POST(req: NextRequest) {
     // 4. Store additional user data in Firestore
     await setDoc(doc(firestore, "users", user.uid), {
       uid: user.uid,
-      name: fullName,
+      fullName: fullName,
+      name: fullName, // Keep for legacy support
       email: email,
       mobile: mobile,
       role: role,
-      is_verified: role === 'agent' ? false : true,
+      kyc_status: role === 'agent' ? 'pending' : 'unverified',
+      is_verified: role === 'agent' ? false : true, // Legacy support
+      isVerified: role === 'agent' ? false : true, // Legacy support
       agency_name: agencyName || null,
       license_number: licenseNumber || null,
       address: address || null,
-      created_at: serverTimestamp(),
-      updated_at: serverTimestamp(),
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+      created_at: serverTimestamp(), // Legacy support
+      updated_at: serverTimestamp(), // Legacy support
+      accountStatus: 'active'
     });
 
     // 5. Return success
@@ -79,6 +85,8 @@ export async function POST(req: NextRequest) {
         message: "User registered successfully", 
         role: role,
         uid: user.uid,
+        fullName: fullName,
+        email: email,
         redirect: `/${role}/dashboard`
       }, 
       { status: 201 }

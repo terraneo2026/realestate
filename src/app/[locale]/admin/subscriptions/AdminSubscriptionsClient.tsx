@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { firestore } from '@/lib/firebase';
-import { collection, query, getDocs, where, doc, updateDoc, orderBy, limit } from 'firebase/firestore';
+import { collection, query, getDocs, where, doc, updateDoc, orderBy, limit, onSnapshot } from 'firebase/firestore';
 import { 
   Zap, 
   Crown, 
@@ -47,15 +47,8 @@ export default function AdminSubscriptionsClient() {
   });
 
   useEffect(() => {
-    fetchSubscriptions();
-  }, []);
-
-  const fetchSubscriptions = async () => {
-    try {
-      setLoading(true);
-      // Fetch users with active plans
-      const q = query(collection(firestore, 'users'), where('plan', '!=', 'free'));
-      const snap = await getDocs(q);
+    const q = query(collection(firestore, 'users'), where('plan', '!=', 'free'));
+    const unsubscribe = onSnapshot(q, (snap) => {
       const fetched = snap.docs.map(doc => ({ id: doc.id, ...(doc.data() as any) }));
       
       setSubscriptions(fetched);
@@ -71,13 +64,14 @@ export default function AdminSubscriptionsClient() {
           return diff > 0 && diff < (7 * 24 * 60 * 60 * 1000); // 7 days
         }).length
       });
-
-    } catch (error) {
-      console.error("Error fetching subscriptions:", error);
-    } finally {
       setLoading(false);
-    }
-  };
+    }, (error) => {
+      console.error("Error fetching subscriptions:", error);
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, []);
 
   const filteredSubscriptions = subscriptions.filter(s => 
     s.fullName?.toLowerCase().includes(searchTerm.toLowerCase()) ||

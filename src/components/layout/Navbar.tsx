@@ -32,6 +32,16 @@ export function Navbar() {
   const [userRole, setUserRole] = useState<string | null>(null);
 
   useEffect(() => {
+    // Check localStorage first for faster response
+    const stored = localStorage.getItem('userProfile');
+    if (stored) {
+      try {
+        const parsed = JSON.parse(stored);
+        setUser(parsed);
+        setUserRole(parsed.role);
+      } catch (e) {}
+    }
+
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       setUser(user);
       if (user) {

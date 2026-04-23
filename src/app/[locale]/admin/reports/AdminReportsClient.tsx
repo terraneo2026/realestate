@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { firestore } from '@/lib/firebase';
-import { collection, query, getDocs, limit, orderBy } from 'firebase/firestore';
+import { collection, query, getDocs, limit, orderBy, onSnapshot } from 'firebase/firestore';
 import { 
   PieChart, 
   BarChart3, 
@@ -40,35 +40,43 @@ export default function AdminReportsClient() {
   });
 
   useEffect(() => {
-    fetchReportData();
-  }, []);
-
-  const fetchReportData = async () => {
-    try {
-      setLoading(true);
-      const [usersSnap, propsSnap, paymentsSnap, enquiriesSnap] = await Promise.all([
-        getDocs(collection(firestore, 'users')),
-        getDocs(collection(firestore, 'properties')),
-        getDocs(collection(firestore, 'payments')),
-        getDocs(collection(firestore, 'enquiries'))
-      ]);
-
-      const successfulPayments = paymentsSnap.docs
-        .map(doc => ({ id: doc.id, ...(doc.data() as any) }))
-        .filter((p: any) => p.status === 'completed' || p.status === 'success');
-
-      setStats({
-        totalUsers: usersSnap.size,
-        totalProperties: propsSnap.size,
-        totalRevenue: successfulPayments.reduce((acc, p: any) => acc + (Number(p.amount) || 0), 0),
-        totalEnquiries: enquiriesSnap.size
-      });
-    } catch (error) {
-      console.error("Error fetching report data:", error);
-    } finally {
+    setLoading(true);
+    
+    // Real-time listener for users
+    const unsubUsers = onSnapshot(collection(firestore, 'users'), (snap) => {
+      setStats(prev => ({ ...prev, totalUsers: snap.size }));
       setLoading(false);
-    }
-  };
+    });
+
+    // Real-time listener for properties
+    const unsubProps = onSnapshot(collection(firestore, 'properties'), (snap) => {
+      setStats(prev => ({ ...prev, totalProperties: snap.size }));
+    });
+
+    // Real-time listener for payments
+    const unsubPayments = onSnapshot(collection(firestore, 'payments'), (snap) => {
+      const successfulPayments = snap.docs
+        .map(doc => doc.data())
+        .filter((p: any) => p.status === 'completed' || p.status === 'success');
+      
+      setStats(prev => ({
+        ...prev,
+        totalRevenue: successfulPayments.reduce((acc, p: any) => acc + (Number(p.amount) || 0), 0)
+      }));
+    });
+
+    // Real-time listener for enquiries
+    const unsubEnquiries = onSnapshot(collection(firestore, 'enquiries'), (snap) => {
+      setStats(prev => ({ ...prev, totalEnquiries: snap.size }));
+    });
+
+    return () => {
+      unsubUsers();
+      unsubProps();
+      unsubPayments();
+      unsubEnquiries();
+    };
+  }, []);
 
   if (loading) {
     return (

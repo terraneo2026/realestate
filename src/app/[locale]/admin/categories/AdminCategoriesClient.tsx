@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { firestore } from '@/lib/firebase';
-import { collection, query, getDocs, addDoc, updateDoc, deleteDoc, doc, orderBy } from 'firebase/firestore';
+import { collection, query, getDocs, addDoc, updateDoc, deleteDoc, doc, orderBy, onSnapshot } from 'firebase/firestore';
 import { 
   List, 
   Plus, 
@@ -47,32 +47,29 @@ export default function AdminCategoriesClient() {
   });
 
   useEffect(() => {
-    fetchCategories();
-  }, []);
-
-  const fetchCategories = async () => {
-    try {
-      setLoading(true);
-      const q = query(collection(firestore, 'categories'), orderBy('order', 'asc'));
-      const snap = await getDocs(q);
+    const q = query(collection(firestore, 'categories'), orderBy('order', 'asc'));
+    const unsubscribe = onSnapshot(q, (snap) => {
       setCategories(snap.docs.map(doc => ({ id: doc.id, ...(doc.data() as any) })));
-    } catch (error) {
+      setLoading(false);
+    }, (error) => {
       console.error("Error fetching categories:", error);
       toast.error("Failed to load categories");
-    } finally {
       setLoading(false);
-    }
-  };
+    });
+
+    return () => unsubscribe();
+  }, []);
 
   const handleSaveCategory = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
+      const { id, ...categoryData } = newCategory as any;
       if (editingCategory) {
-        await updateDoc(doc(firestore, 'categories', editingCategory.id), newCategory);
+        await updateDoc(doc(firestore, 'categories', editingCategory.id), categoryData);
         toast.success("Category updated successfully");
       } else {
         await addDoc(collection(firestore, 'categories'), {
-          ...newCategory,
+          ...categoryData,
           createdAt: new Date()
         });
         toast.success("New category added");
@@ -80,7 +77,6 @@ export default function AdminCategoriesClient() {
       setIsModalOpen(false);
       setEditingCategory(null);
       setNewCategory({ name: '', slug: '', description: '', status: 'active', order: 0, icon: 'Building2' });
-      fetchCategories();
     } catch (error) {
       console.error("Error saving category:", error);
       toast.error("Operation failed");
@@ -92,7 +88,6 @@ export default function AdminCategoriesClient() {
     try {
       await deleteDoc(doc(firestore, 'categories', id));
       toast.success("Category removed");
-      fetchCategories();
     } catch (error) {
       console.error("Error deleting category:", error);
       toast.error("Failed to delete");

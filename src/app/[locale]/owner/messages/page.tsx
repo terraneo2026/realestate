@@ -91,7 +91,7 @@ export default function OwnerMessagesPage() {
         
         // Auto-select if userId in params
         const targetUserId = searchParams?.get('userId');
-        if (targetUserId && !selectedConversation) {
+        if (targetUserId && (!selectedConversation || selectedConversation.id !== targetUserId)) {
           const found = convList.find(c => c.id === targetUserId);
           if (found) setSelectedConversation(found);
         }

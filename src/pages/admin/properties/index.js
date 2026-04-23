@@ -71,7 +71,7 @@ const AdminProperties = () => {
   useEffect(() => {
     fetchProperties();
     fetchStats();
-  }, [activeTab]);
+  }, [activeTab, filterType, filterLocation, filterProject]);
 
   const fetchStats = async () => {
     try {
@@ -79,10 +79,13 @@ const AdminProperties = () => {
       const all = snap.docs.map(d => d.data());
       setStats({
         total: all.length,
-        approved: all.filter(p => p.status === 'approved' || p.status === 'active').length,
-        pending: all.filter(p => p.status === 'pending').length,
-        rejected: all.filter(p => p.status === 'rejected').length,
-        rented: all.filter(p => p.status === 'rented').length,
+        approved: all.filter(p => {
+          const s = String(p.status || '').toLowerCase();
+          return s === 'approved' || s === 'active' || s === 'published';
+        }).length,
+        pending: all.filter(p => String(p.status || 'pending').toLowerCase() === 'pending').length,
+        rejected: all.filter(p => String(p.status || '').toLowerCase() === 'rejected').length,
+        rented: all.filter(p => String(p.status || '').toLowerCase() === 'rented').length,
       });
     } catch (error) {
       console.error("Error fetching stats:", error);
@@ -92,34 +95,50 @@ const AdminProperties = () => {
   const fetchProperties = async () => {
     try {
       setLoading(true);
-      // We use client-side filtering for status and category to avoid requiring dozens of composite indexes
-      const q = query(collection(firestore, 'properties'), orderBy('createdAt', 'desc'));
+      // Fetch all properties and sort client-side to avoid index requirement
+      const q = collection(firestore, 'properties');
       
       const snap = await getDocs(q);
       let fetched = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
+      // Client-side sorting by date
+      fetched.sort((a, b) => {
+        const getDate = (val) => {
+          if (!val) return new Date(0);
+          if (typeof val.toDate === 'function') return val.toDate();
+          return new Date(val);
+        };
+        const dateA = getDate(a.createdAt || a.created_at);
+        const dateB = getDate(b.createdAt || b.created_at);
+        return dateB - dateA;
+      });
+
       // Client-side filtering
       if (activeTab !== 'all') {
-        fetched = fetched.filter(p => p.status === activeTab);
+        fetched = fetched.filter(p => {
+          const status = String(p.status || 'pending').toLowerCase();
+          if (activeTab === 'approved') return status === 'approved' || status === 'active' || status === 'published';
+          return status === activeTab;
+        });
       }
 
       if (filterType !== 'all') {
-        fetched = fetched.filter(p => p.category === filterType);
+        fetched = fetched.filter(p => (p.category || p.category_id) === filterType);
       }
 
       if (filterLocation !== 'all') {
-        fetched = fetched.filter(p => p.city === filterLocation);
+        fetched = fetched.filter(p => (p.city || p.location?.city) === filterLocation);
       }
 
       if (filterProject !== 'all') {
-        fetched = fetched.filter(p => p.projectId === filterProject || p.projectName === filterProject);
+        fetched = fetched.filter(p => p.projectId === filterProject || p.projectName === filterProject || p.newProjectName === filterProject);
       }
 
       if (budgetRange.min) {
-        fetched = fetched.filter(p => (p.price || p.budget) >= Number(budgetRange.min));
+        fetched = fetched.filter(p => Number(p.price || p.budget || 0) >= Number(budgetRange.min));
       }
       if (budgetRange.max) {
-        fetched = fetched.filter(p => (p.price || p.budget) <= Number(budgetRange.max));
+        fetched = fetched.filter(p => Number(p.price || p.budget || 0) <= Number(budgetRange.max));
       }
 
       setProperties(fetched);
@@ -201,14 +220,24 @@ const AdminProperties = () => {
     }
   };
 
-  const filteredProperties = properties.filter(p => 
-    (p.title || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (p.ownerName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (p.ownerMobile || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (p.city || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (p.id || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (p.projectId || '').toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredProperties = properties.filter(p => {
+    const s = searchTerm.toLowerCase();
+    const city = (p.city || p.location?.city || '').toLowerCase();
+    const title = (p.title || '').toLowerCase();
+    const ownerName = (p.ownerName || '').toLowerCase();
+    const ownerMobile = (p.ownerMobile || '').toLowerCase();
+    const id = (p.id || '').toLowerCase();
+    const projectId = (p.projectId || '').toLowerCase();
+    const projectName = (p.projectName || p.newProjectName || '').toLowerCase();
+    
+    return title.includes(s) || 
+           ownerName.includes(s) || 
+           ownerMobile.includes(s) || 
+           city.includes(s) || 
+           id.includes(s) || 
+           projectId.includes(s) ||
+           projectName.includes(s);
+  });
 
   const projects = Array.from(new Set(properties.map(p => p.projectName || p.projectId).filter(Boolean)));
   const locations = Array.from(new Set(properties.map(p => p.city).filter(Boolean)));
@@ -409,16 +438,21 @@ const AdminProperties = () => {
                       </td>
                       <td className="px-6 py-8">
                          <div className="flex flex-col items-center gap-2">
-                            <div className={cn(
-                              "px-4 py-1.5 rounded-xl text-xs font-bold tracking-tight border shadow-sm",
-                              prop.status === 'approved' || prop.status === 'active' ? "bg-green-50 border-green-100 text-green-600" :
-                              prop.status === 'pending' ? "bg-amber-50 border-amber-100 text-amber-600" :
-                              prop.status === 'rejected' ? "bg-red-50 border-red-100 text-red-600" :
-                              prop.status === 'rented' ? "bg-blue-50 border-blue-100 text-blue-600" :
-                              "bg-gray-50 border-gray-100 text-gray-400"
-                            )}>
-                               {prop.status}
-                            </div>
+                            {(() => {
+                               const status = String(prop.status || 'pending').toLowerCase();
+                               return (
+                                 <div className={cn(
+                                   "px-4 py-1.5 rounded-xl text-xs font-bold tracking-tight border shadow-sm",
+                                   (status === 'approved' || status === 'active' || status === 'published') ? "bg-green-50 border-green-100 text-green-600" :
+                                   status === 'pending' ? "bg-amber-50 border-amber-100 text-amber-600" :
+                                   status === 'rejected' ? "bg-red-50 border-red-100 text-red-600" :
+                                   status === 'rented' ? "bg-blue-50 border-blue-100 text-blue-600" :
+                                   "bg-gray-50 border-gray-100 text-gray-400"
+                                 )}>
+                                    {prop.status || 'pending'}
+                                 </div>
+                               );
+                            })()}
                             <div className="flex flex-col items-center">
                                <span className="text-xs font-bold text-gray-300 uppercase">Possession</span>
                                <span className="text-xs font-bold text-gray-600">{prop.possessionStatus || 'Ready'} ({prop.possessionType || 'Self'})</span>

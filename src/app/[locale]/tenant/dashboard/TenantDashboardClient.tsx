@@ -10,7 +10,8 @@ import DashboardLayout from "@/components/DashboardLayout";
 import { 
   Heart, Search, MessageSquare, Calendar, 
   ArrowRight, Clock, CheckCircle2, AlertCircle, 
-  Wallet, User as UserIcon, Settings, ChevronRight
+  Wallet, User as UserIcon, Settings, ChevronRight,
+  Bell
 } from "lucide-react";
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
@@ -273,6 +274,7 @@ export default function TenantDashboardClient() {
             <div className="space-y-4">
               {[
                 { label: 'Browse Properties', href: `/${locale}/properties`, icon: <Search size={18} />, color: 'primary' },
+                { label: 'Notifications', href: `/${locale}/tenant/notifications`, icon: <Bell size={18} />, color: 'red' },
                 { label: 'Saved Searches', href: `/${locale}/tenant/searches`, icon: <Clock size={18} />, color: 'blue' },
                 { label: 'Messages', href: `/${locale}/tenant/messages`, icon: <MessageSquare size={18} />, color: 'green', badge: stats.inquiryCount },
                 { label: 'Payments', href: `/${locale}/tenant/payments`, icon: <Wallet size={18} />, color: 'orange' },

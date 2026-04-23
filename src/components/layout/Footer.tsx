@@ -78,9 +78,9 @@ const Footer = () => {
             <ul className="space-y-4">
               <FooterLink href={`/${locale}/blog`}>Real Estate Blog</FooterLink>
               <FooterLink href={`/${locale}/favorites`}>My Favorites</FooterLink>
-              <FooterLink href={`/${locale}/login`}>Agent Login</FooterLink>
-              <FooterLink href={`/${locale}/owner/register`}>Owner Registration</FooterLink>
-              <FooterLink href={`/${locale}/tenant/register`}>Tenant Registration</FooterLink>
+              <FooterLink href={`/${locale}/agent/login`}>Agent Login</FooterLink>
+              <FooterLink href={`/${locale}/owner/login`}>Owner Login</FooterLink>
+              <FooterLink href={`/${locale}/tenant/login`}>Tenant Login</FooterLink>
             </ul>
           </div>
  

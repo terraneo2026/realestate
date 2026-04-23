@@ -55,6 +55,8 @@ export async function POST(req: NextRequest) {
         message: "Login successful", 
         role: userData.role,
         uid: user.uid,
+        fullName: userData.fullName || userData.name,
+        email: user.email,
         redirect: `/${userData.role}/dashboard` 
       }, 
       { status: 200 }

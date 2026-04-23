@@ -8,14 +8,23 @@ import usePlacesAutocomplete, {
 import { useLoadScript } from '@react-google-maps/api';
 import { MapPin, Search, X } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { clsx, type ClassValue } from 'clsx';
+import { twMerge } from 'tailwind-merge';
+
+function cn(...inputs: ClassValue[]) {
+  return twMerge(clsx(inputs));
+}
 
 const libraries: ("places")[] = ["places"];
 
 interface LocationPickerProps {
   locale: string;
+  onLocationChange?: (location: string) => void;
+  placeholder?: string;
+  className?: string;
 }
 
-export default function LocationPicker({ locale }: LocationPickerProps) {
+export default function LocationPicker({ locale, onLocationChange, placeholder, className }: LocationPickerProps) {
   console.log("LocationPicker API Key:", process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ? "Present" : "Missing");
 
   const { isLoaded, loadError } = useLoadScript({
@@ -30,7 +39,7 @@ export default function LocationPicker({ locale }: LocationPickerProps) {
   
   if (!isLoaded) {
     return (
-      <div className="flex items-center gap-2 px-3 py-2 bg-gray-100 rounded-xl border border-transparent w-full md:max-w-[280px]">
+      <div className={cn("flex items-center gap-2 px-3 py-2 bg-gray-100 rounded-xl border border-transparent w-full", className)}>
         <div className="animate-pulse flex items-center gap-2 w-full">
           <div className="w-4 h-4 bg-gray-300 rounded-full"></div>
           <div className="h-4 bg-gray-300 rounded w-full"></div>
@@ -40,13 +49,13 @@ export default function LocationPicker({ locale }: LocationPickerProps) {
   }
 
   return (
-    <Suspense fallback={<div className="h-10 w-full md:max-w-[280px] bg-gray-100 animate-pulse rounded-xl" />}>
-      <LocationPickerChild locale={locale} />
+    <Suspense fallback={<div className={cn("h-10 w-full bg-gray-100 animate-pulse rounded-xl", className)} />}>
+      <LocationPickerChild locale={locale} onLocationChange={onLocationChange} placeholder={placeholder} className={className} />
     </Suspense>
   );
 }
 
-function LocationPickerChild({ locale }: LocationPickerProps) {
+function LocationPickerChild({ locale, onLocationChange, placeholder, className }: LocationPickerProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [isOpen, setIsOpen] = useState(false);
@@ -65,14 +74,14 @@ function LocationPickerChild({ locale }: LocationPickerProps) {
     debounce: 300,
   });
 
-  // Sync with URL if location changes
+  // Sync with URL if location changes and not in "form mode"
   useEffect(() => {
-    if (!searchParams) return;
+    if (!searchParams || onLocationChange) return;
     const fromQuery = searchParams.get('location');
     if (fromQuery) {
       setValue(fromQuery, false);
     }
-  }, [searchParams, setValue]);
+  }, [searchParams, setValue, onLocationChange]);
 
   // Handle outside click to close dropdown
   useEffect(() => {
@@ -88,6 +97,9 @@ function LocationPickerChild({ locale }: LocationPickerProps) {
   const handleInput = (e: React.ChangeEvent<HTMLInputElement>) => {
     setValue(e.target.value);
     setIsOpen(true);
+    if (onLocationChange) {
+      onLocationChange(e.target.value);
+    }
   };
 
   const handleSelect = ({ description }: { description: string }) => () => {
@@ -95,26 +107,34 @@ function LocationPickerChild({ locale }: LocationPickerProps) {
     clearSuggestions();
     setIsOpen(false);
     
-    // Navigate with new location
-    router.push(`/${locale}/properties?location=${encodeURIComponent(description)}`);
+    if (onLocationChange) {
+      onLocationChange(description);
+    } else {
+      // Navigate with new location only if not in "form mode"
+      router.push(`/${locale}/properties?location=${encodeURIComponent(description)}`);
+    }
   };
 
   const clearInput = () => {
     setValue("");
     clearSuggestions();
     setIsOpen(false);
-    router.push(`/${locale}/properties`);
+    if (onLocationChange) {
+      onLocationChange("");
+    } else {
+      router.push(`/${locale}/properties`);
+    }
   };
 
   return (
-    <div ref={containerRef} className="relative w-full md:max-w-[280px]">
+    <div ref={containerRef} className={cn("relative w-full", className)}>
       <div className="flex items-center gap-2 px-3 py-2 bg-gray-100 hover:bg-gray-200 transition-colors rounded-xl border border-transparent focus-within:border-primary/20 focus-within:bg-white focus-within:ring-2 focus-within:ring-primary/10 group shadow-sm">
         <div className="flex items-center gap-1.5 shrink-0">
           <Search className="w-4 h-4 text-primary transition-transform group-hover:scale-110" />
           <MapPin className="w-4 h-4 text-primary/60 transition-transform group-hover:scale-110" />
         </div>
         <div className="flex-1 min-w-0">
-          <label className="text-[10px] text-gray-500 block font-bold  tracking-wider leading-none mb-1">
+          <label className="text-[10px] text-gray-500 block font-bold  tracking-wider leading-none mb-1 uppercase">
             Location
           </label>
           <div className="flex items-center">
@@ -122,7 +142,7 @@ function LocationPickerChild({ locale }: LocationPickerProps) {
               value={value}
               onChange={handleInput}
               disabled={!ready}
-              placeholder="Search location..."
+              placeholder={placeholder || "Search location..."}
               className="bg-transparent border-0 font-semibold text-gray-800 text-xs focus:outline-none w-full placeholder:text-gray-400 placeholder:font-normal"
               onFocus={() => setIsOpen(true)}
             />

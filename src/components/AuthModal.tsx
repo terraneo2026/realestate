@@ -105,6 +105,14 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
         throw new Error(result.message || "Login failed");
       }
 
+      // Save profile to localStorage for UI persistence
+      localStorage.setItem('userProfile', JSON.stringify({
+        fullName: result.fullName,
+        email: result.email,
+        role: result.role,
+        id: result.uid
+      }));
+
       // Dynamic redirect based on role
       const redirectPath = result.role === 'admin' 
         ? `/${locale}/admin` 
@@ -133,6 +141,14 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
         setServerError(result.message || "Registration failed");
         return;
       }
+
+      // Save profile to localStorage for UI persistence
+      localStorage.setItem('userProfile', JSON.stringify({
+        fullName: result.fullName,
+        email: result.email,
+        role: result.role,
+        id: result.uid
+      }));
 
       // Dynamic redirect based on role
       const redirectPath = result.role === 'admin' 
@@ -214,7 +230,13 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
                 <div className="space-y-1.5">
                   <div className="flex justify-between items-center px-1">
                     <label className="text-[10px] font-black text-gray-400 tracking-[0.2em] uppercase">Password</label>
-                    <button type="button" className="text-[10px] font-black text-primary hover:underline tracking-widest uppercase">Forgot?</button>
+                    <Link 
+                      href={`/${locale}/forgot-password`} 
+                      onClick={onClose}
+                      className="text-[10px] font-black text-primary hover:underline tracking-widest uppercase"
+                    >
+                      Forgot?
+                    </Link>
                   </div>
                   <div className="relative">
                     <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={16} />

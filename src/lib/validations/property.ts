@@ -8,6 +8,9 @@ export const propertySchema = z.object({
   builderName: z.string().min(3, "Builder name must be at least 3 characters").optional(),
   
   category: z.string().min(1, "Category is required"),
+  propertyType: z.string().min(1, "Property type is required"),
+  ownerName: z.string().min(3, "Owner name must be at least 3 characters"),
+  ownerMobile: z.string().regex(/^\d{10}$/, "Invalid contact number (10 digits)"),
   title: z.string().min(3, "Title must be at least 3 characters").max(100, "Title cannot exceed 100 characters"),
   budget: z.coerce.number().positive("Budget must be a positive number"),
   type: z.enum(["rent", "lease"]),
@@ -19,6 +22,19 @@ export const propertySchema = z.object({
 
   // Property Configuration
   furnishing: z.enum(["furnished", "semi-furnished", "unfurnished"]),
+  floors: z.coerce.number().min(1, "Number of floors is required"),
+  totalBedrooms: z.coerce.number().min(0).default(0),
+  bedroomsWithAttachedBath: z.coerce.number().min(0).default(0),
+  bedroomsWithoutAttachedBath: z.coerce.number().min(0).default(0),
+  kitchens: z.coerce.number().min(0).default(1),
+  halls: z.coerce.number().min(0).default(1),
+  commonBathrooms: z.coerce.number().min(0).default(0),
+  poojaRooms: z.coerce.number().min(0).default(0),
+  drawingRooms: z.coerce.number().min(0).default(0),
+  customParameters: z.array(z.object({
+    label: z.string().min(1),
+    value: z.string().min(1)
+  })).optional(),
   
   bedrooms: z.array(z.object({
     type: z.enum([
@@ -73,7 +89,12 @@ export const propertySchema = z.object({
   
   images: z.array(z.string()).min(4, "Minimum 4 images are mandatory"),
   coverImage: z.string().min(1, "Please select a cover image"),
-}).refine((data) => {
+  amenities: z.array(z.string()).default([]),
+});
+
+export type PropertyFormData = z.infer<typeof propertySchema>;
+
+export const propertyValidationSchema = propertySchema.refine((data) => {
   if (data.type === "rent" && data.duration && data.duration > 11) {
     return false;
   }
@@ -90,5 +111,3 @@ export const propertySchema = z.object({
   message: "New project name is required",
   path: ["newProjectName"]
 });
-
-export type PropertyFormData = z.infer<typeof propertySchema>;

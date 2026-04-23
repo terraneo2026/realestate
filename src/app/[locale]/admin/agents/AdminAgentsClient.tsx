@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { firestore } from '@/lib/firebase';
-import { collection, query, getDocs, where, doc, updateDoc, addDoc, deleteDoc, orderBy } from 'firebase/firestore';
+import { collection, query, getDocs, where, doc, updateDoc, addDoc, deleteDoc, orderBy, onSnapshot } from 'firebase/firestore';
 import { 
   Users2, 
   Search, 
@@ -37,13 +37,16 @@ import {
   UserX,
   Layers,
   Map,
-  ChevronDown
+  ChevronDown,
+  Key
 } from 'lucide-react';
 import AdminLayout from '@/components/admin/AdminLayout';
 import { toast } from 'sonner';
 import { exportToCSV } from '@/lib/export';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
+
+import LocationPicker from '@/components/layout/LocationPicker';
 
 function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -60,6 +63,7 @@ export default function AdminAgentsClient() {
   const [newAgentForm, setNewAgentForm] = useState<any>({
     fullName: '',
     email: '',
+    password: '',
     mobile: '',
     city: '',
     assignedArea: '',
@@ -78,33 +82,9 @@ export default function AdminAgentsClient() {
   });
 
   useEffect(() => {
-    fetchAgents();
-  }, []);
-
-  const fetchAgentData = async (agentList: any[]) => {
-    try {
-      const propData: any = {};
-      const propsSnap = await getDocs(collection(firestore, 'properties'));
-      const allProps = propsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
-
-      agentList.forEach(agent => {
-        const allocated = allProps.filter((p: any) => p.agentId === agent.id);
-        propData[agent.id] = {
-          count: allocated.length,
-          properties: allocated
-        };
-      });
-      setAgentProperties(propData);
-    } catch (error) {
-      console.error("Error fetching agent property data:", error);
-    }
-  };
-
-  const fetchAgents = async () => {
-    try {
-      setLoading(true);
-      const q = query(collection(firestore, 'users'), where('role', '==', 'agent'));
-      const snap = await getDocs(q);
+    // Real-time listener for agents (users with role 'agent')
+    const qAgents = query(collection(firestore, 'users'), where('role', '==', 'agent'));
+    const unsubscribeAgents = onSnapshot(qAgents, (snap) => {
       const fetched = snap.docs.map(doc => ({ id: doc.id, ...(doc.data() as any) }));
       
       fetched.sort((a: any, b: any) => {
@@ -114,20 +94,46 @@ export default function AdminAgentsClient() {
       });
 
       setAgents(fetched);
-      fetchAgentData(fetched);
-      
       setStats({
         total: fetched.length,
         active: fetched.filter((a: any) => a.accountStatus === 'active' || !a.accountStatus).length,
         suspended: fetched.filter((a: any) => a.accountStatus === 'suspended').length,
         verified: fetched.filter((a: any) => a.kyc_status === 'verified').length,
       });
-    } catch (error) {
-      console.error("Error fetching agents:", error);
-      toast.error("Failed to load agents");
-    } finally {
       setLoading(false);
-    }
+    });
+
+    // Real-time listener for properties to update allocated counts
+    const unsubscribeProps = onSnapshot(collection(firestore, 'properties'), (snap) => {
+      const allProps = snap.docs.map(d => ({ id: d.id, ...d.data() as any }));
+      const propData: any = {};
+      
+      // We'll update this whenever properties change
+      // The actual counts will be rendered in the table using this state
+      setAgentProperties((prev: any) => {
+        const newPropData: any = {};
+        // Use current agents to build the map
+        // We'll actually calculate this in the render or a memoized way if needed, 
+        // but for now, let's just store all props and filter in the table
+        return allProps;
+      });
+    });
+
+    return () => {
+      unsubscribeAgents();
+      unsubscribeProps();
+    };
+  }, []);
+
+  // Simplified property counting logic
+  const getAgentPropertyCount = (agentId: string) => {
+    if (!Array.isArray(agentProperties)) return 0;
+    return agentProperties.filter((p: any) => p.agentId === agentId).length;
+  };
+
+  const getAgentProperties = (agentId: string) => {
+    if (!Array.isArray(agentProperties)) return [];
+    return agentProperties.filter((p: any) => p.agentId === agentId);
   };
 
   const handleStatusUpdate = async (agentId: string, updates: any) => {
@@ -141,7 +147,7 @@ export default function AdminAgentsClient() {
       
       // Update stats if accountStatus or kyc_status changed
       if (updates.accountStatus || updates.kyc_status) {
-        fetchAgents();
+        // Stats are updated via onSnapshot
       }
     } catch (error) {
       console.error("Error updating agent:", error);
@@ -151,21 +157,58 @@ export default function AdminAgentsClient() {
 
   const handleAddAgent = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newAgentForm.fullName || !newAgentForm.email) {
-      toast.error("Please fill in required fields");
+    
+    // Simple validation
+    if (!newAgentForm.fullName || newAgentForm.fullName.length < 3) {
+      toast.error("Full name must be at least 3 characters");
       return;
     }
+    if (!newAgentForm.email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newAgentForm.email)) {
+      toast.error("Please enter a valid email address");
+      return;
+    }
+    if (!newAgentForm.mobile || !/^\d{10}$/.test(newAgentForm.mobile.replace(/\D/g, ''))) {
+      toast.error("Please enter a valid 10-digit mobile number");
+      return;
+    }
+    if (!newAgentForm.city) {
+      toast.error("Please select or enter a city");
+      return;
+    }
+    if (!newAgentForm.password || newAgentForm.password.length < 6) {
+      toast.error("Password must be at least 6 characters");
+      return;
+    }
+
     setSaving(true);
     try {
-      const docRef = await addDoc(collection(firestore, 'users'), {
-        ...newAgentForm,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        isVerified: false
+      // 1. Create user via Auth API to ensure Firebase Auth account is created
+      const response = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          fullName: newAgentForm.fullName,
+          email: newAgentForm.email,
+          mobile: newAgentForm.mobile,
+          password: newAgentForm.password,
+          role: 'agent'
+        })
+      });
+
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.message || 'Registration failed');
+
+      // 2. Update the newly created user document with additional fields
+      const userId = result.uid;
+      await updateDoc(doc(firestore, 'users', userId), {
+        city: newAgentForm.city,
+        assignedArea: newAgentForm.assignedArea,
+        packageType: newAgentForm.packageType,
+        accountStatus: newAgentForm.accountStatus,
+        kyc_status: newAgentForm.kyc_status,
+        updatedAt: new Date()
       });
       
-      const newAgent = { id: docRef.id, ...newAgentForm };
-      setAgents(prev => [newAgent, ...prev]);
       toast.success("New employee added successfully");
       setIsAdding(false);
       setNewAgentForm({
@@ -179,12 +222,26 @@ export default function AdminAgentsClient() {
         accountStatus: 'active',
         kyc_status: 'unverified'
       });
-      fetchAgents(); // Refresh to update stats
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error adding agent:", error);
-      toast.error("Failed to add employee");
+      toast.error(error.message || "Failed to add employee");
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleResetPassword = async (agent: any) => {
+    try {
+      const response = await fetch('/api/auth/reset-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: agent.email })
+      });
+      if (!response.ok) throw new Error('Reset failed');
+      toast.success(`Password reset email sent to ${agent.email}`);
+    } catch (error) {
+      console.error("Error resetting password:", error);
+      toast.error("Failed to send reset email");
     }
   };
 
@@ -351,7 +408,7 @@ export default function AdminAgentsClient() {
                       </td>
                       <td className="px-6 py-8 text-center">
                          <div className="flex flex-col items-center">
-                            <span className="text-lg font-bold text-gray-900">{agentProperties[agent.id]?.count || 0}</span>
+                            <span className="text-lg font-bold text-gray-900">{getAgentPropertyCount(agent.id)}</span>
                             <span className="text-xs font-bold text-gray-400 tracking-tight">Properties</span>
                          </div>
                       </td>
@@ -472,20 +529,28 @@ export default function AdminAgentsClient() {
                        <label className="text-xs font-bold text-gray-400 ml-2">Mobile number</label>
                        <input 
                          type="text" 
-                         placeholder="e.g. +91 98765 43210"
+                         placeholder="e.g. 9876543210"
                          className="w-full px-6 py-4 bg-gray-50 border border-gray-100 rounded-2xl focus:border-primary outline-none font-bold text-sm"
                          value={newAgentForm.mobile}
                          onChange={(e) => setNewAgentForm({...newAgentForm, mobile: e.target.value})}
                        />
                     </div>
                     <div className="space-y-2">
-                       <label className="text-xs font-bold text-gray-400 ml-2">City</label>
+                       <label className="text-xs font-bold text-gray-400 ml-2">Initial Password *</label>
                        <input 
-                         type="text" 
-                         placeholder="e.g. Chennai"
+                         type="password" 
+                         required
+                         placeholder="At least 6 characters"
                          className="w-full px-6 py-4 bg-gray-50 border border-gray-100 rounded-2xl focus:border-primary outline-none font-bold text-sm"
-                         value={newAgentForm.city}
-                         onChange={(e) => setNewAgentForm({...newAgentForm, city: e.target.value})}
+                         value={newAgentForm.password}
+                         onChange={(e) => setNewAgentForm({...newAgentForm, password: e.target.value})}
+                       />
+                    </div>
+                    <div className="space-y-2">
+                       <label className="text-xs font-bold text-gray-400 ml-2">City Selection</label>
+                       <LocationPicker 
+                         locale="en" 
+                         onLocationChange={(city) => setNewAgentForm({...newAgentForm, city})} 
                        />
                     </div>
                     <div className="space-y-2">
@@ -549,6 +614,15 @@ export default function AdminAgentsClient() {
                     <p className="text-xs font-bold text-gray-400 tracking-tight mt-1">UID: {selectedAgent.id}</p>
                  </div>
                  <div className="flex items-center gap-4">
+                    {isEditing && (
+                      <button 
+                        onClick={() => handleResetPassword(selectedAgent)}
+                        className="px-6 py-3 bg-amber-50 text-amber-600 border border-amber-100 rounded-xl font-bold text-xs tracking-tight hover:bg-amber-100 transition-all flex items-center gap-2"
+                        type="button"
+                      >
+                        <Key size={14} /> Reset password
+                      </button>
+                    )}
                     {!isEditing && (
                       <button 
                         onClick={() => { setIsEditing(true); setEditForm(selectedAgent); }}
@@ -585,11 +659,9 @@ export default function AdminAgentsClient() {
                          </div>
                          <div className="space-y-2">
                             <label className="text-xs font-bold text-gray-400 ml-2">Location (City)</label>
-                            <input 
-                              type="text" 
-                              className="w-full px-6 py-4 bg-gray-50 border border-gray-100 rounded-2xl focus:border-primary outline-none font-bold text-sm"
-                              value={editForm.city || ''}
-                              onChange={(e) => setEditForm({...editForm, city: e.target.value})}
+                            <LocationPicker 
+                              locale="en" 
+                              onLocationChange={(city) => setEditForm({...editForm, city})} 
                             />
                          </div>
                          <div className="space-y-2">
@@ -676,11 +748,11 @@ export default function AdminAgentsClient() {
                          
                          <div className="space-y-6">
                             <div className="flex items-center justify-between">
-                               <h4 className="text-xs font-bold text-gray-400 tracking-tight">Allocated properties ({agentProperties[selectedAgent.id]?.count || 0})</h4>
+                               <h4 className="text-xs font-bold text-gray-400 tracking-tight">Allocated properties ({getAgentPropertyCount(selectedAgent.id)})</h4>
                                <button className="text-xs font-bold text-primary tracking-tight hover:underline">Manage all</button>
                             </div>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                               {agentProperties[selectedAgent.id]?.properties.length > 0 ? agentProperties[selectedAgent.id].properties.map((prop: any) => (
+                               {getAgentProperties(selectedAgent.id).length > 0 ? getAgentProperties(selectedAgent.id).map((prop: any) => (
                                  <div key={prop.id} className="p-4 bg-gray-50 rounded-2xl border border-gray-100 flex items-center gap-4">
                                     <div className="w-12 h-12 rounded-xl overflow-hidden shadow-sm shrink-0">
                                        <img src={prop.image || '/placeholder.svg'} alt="" className="w-full h-full object-cover" />

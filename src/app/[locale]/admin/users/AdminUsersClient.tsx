@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { firestore } from '@/lib/firebase';
-import { collection, query, getDocs, where, doc, updateDoc, addDoc, orderBy } from 'firebase/firestore';
+import { collection, query, getDocs, where, doc, updateDoc, addDoc, orderBy, onSnapshot } from 'firebase/firestore';
 import { 
   UserCheck, 
   ShieldCheck, 
@@ -46,7 +46,17 @@ export default function AdminUsersClient() {
   );
 
   useEffect(() => {
-    fetchStaff();
+    const q = query(collection(firestore, 'users'), where('role', 'in', ['admin', 'staff', 'manager']));
+    const unsubscribe = onSnapshot(q, (snap) => {
+      setUsers(snap.docs.map(doc => ({ id: doc.id, ...(doc.data() as any) })));
+      setLoading(false);
+    }, (error) => {
+      console.error("Error fetching staff:", error);
+      toast.error("Failed to load staff members");
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
   }, []);
 
   const handleVerify = async (userId: string, isVerified: boolean) => {
@@ -56,7 +66,6 @@ export default function AdminUsersClient() {
         isVerified,
         updatedAt: new Date()
       });
-      setUsers(prev => prev.map(u => u.id === userId ? { ...u, isVerified } : u));
       toast.success(isVerified ? "User verified successfully" : "Verification removed");
 
       if (user) {
@@ -75,19 +84,6 @@ export default function AdminUsersClient() {
     } catch (error) {
       console.error("Error updating verification:", error);
       toast.error("Failed to update verification");
-    }
-  };
-
-  const fetchStaff = async () => {
-    try {
-      setLoading(true);
-      const q = query(collection(firestore, 'users'), where('role', 'in', ['admin', 'staff', 'manager']));
-      const snap = await getDocs(q);
-      setUsers(snap.docs.map(doc => ({ id: doc.id, ...(doc.data() as any) })));
-    } catch (error) {
-      console.error("Error fetching staff:", error);
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -189,7 +185,16 @@ export default function AdminUsersClient() {
                                 )}
                              </td>
                              <td className="px-10 py-8 text-right">
-                                <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <div className="flex items-center justify-end gap-2">
+                                   {!user.isVerified && (
+                                     <button 
+                                       onClick={() => handleVerify(user.id, true)}
+                                       className="p-2 bg-white border border-gray-100 text-gray-400 hover:text-green-500 rounded-lg shadow-sm"
+                                       title="Verify User"
+                                     >
+                                        <UserCheck size={16} />
+                                     </button>
+                                   )}
                                    <button className="p-2 bg-white border border-gray-100 text-gray-400 hover:text-primary rounded-lg shadow-sm">
                                       <Settings size={16} />
                                    </button>

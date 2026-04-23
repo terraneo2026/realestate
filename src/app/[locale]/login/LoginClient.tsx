@@ -5,7 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Mail, Lock, Eye, EyeOff, LogIn, ArrowRight, UserPlus, Home, Briefcase, Key, Loader2 } from "lucide-react";
+import { Mail, Lock, Eye, EyeOff, LogIn, ArrowRight, UserPlus, Home, Briefcase, Key, Loader2, AlertCircle } from "lucide-react";
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 
@@ -15,10 +15,23 @@ function cn(...inputs: ClassValue[]) {
 
 interface LoginClientProps {
   locale: string;
+  role?: 'tenant' | 'owner' | 'agent';
 }
 
-export default function LoginClient({ locale }: LoginClientProps) {
+export default function LoginClient({ locale, role }: LoginClientProps) {
   const router = useRouter();
+  
+  const roleTitles = {
+    tenant: "Tenant Portal",
+    owner: "Owner Portal",
+    agent: "Agent Portal"
+  };
+
+  const roleDescriptions = {
+    tenant: "Access your rental dashboard",
+    owner: "Manage your property portfolio",
+    agent: "Track your listings and leads"
+  };
 
   const [formData, setFormData] = useState({
     email: "",
@@ -26,17 +39,20 @@ export default function LoginClient({ locale }: LoginClientProps) {
   });
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [serverError, setServerError] = useState<string | null>(null);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({
       ...formData,
       [e.target.name]: e.target.value,
     });
+    if (serverError) setServerError(null);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    setServerError(null);
 
     try {
       const response = await fetch("/api/auth/login", {
@@ -46,21 +62,28 @@ export default function LoginClient({ locale }: LoginClientProps) {
       });
 
       const result = await response.json();
-
+ 
       if (!response.ok) {
-        throw new Error(result.message || "Login failed");
+        setServerError(result.message || "Invalid email or password");
+        return;
       }
-
+ 
       toast.success("Login successful!");
       
-      // Dynamic redirect based on role
+      // Save profile to localStorage for UI persistence
+      localStorage.setItem('userProfile', JSON.stringify({
+        fullName: result.fullName,
+        email: result.email,
+        role: result.role,
+        id: result.uid
+      }));
       const redirectPath = result.role === 'admin' 
         ? `/${locale}/admin` 
         : `/${locale}/${result.role}/dashboard`;
       router.push(redirectPath);
     } catch (err: any) {
       console.error("Login error:", err);
-      toast.error(err.message || "Invalid email or password. Please try again.");
+      setServerError("An unexpected error occurred. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -89,44 +112,45 @@ export default function LoginClient({ locale }: LoginClientProps) {
               </div>
             </Link>
           </div>
-          <h2 className="text-3xl font-black text-gray-900 tracking-tight mb-2">
-            Welcome Back
+          <h2 className="text-3xl font-black text-gray-900 tracking-tight mb-2 uppercase">
+            {role ? roleTitles[role] : "Welcome Back"}
           </h2>
-          <p className="text-[10px] text-gray-400 font-black tracking-[0.2em]">
-            Access your property dashboard
+          <p className="text-[10px] text-gray-400 font-black tracking-[0.2em] uppercase">
+            {role ? roleDescriptions[role] : "Access your property dashboard"}
           </p>
         </div>
  
-        {/* Role Selection Moved to Top */}
-        <div className="grid grid-cols-3 gap-3">
-          <Link
-            href={`/${locale}/tenant/register`}
-            className="flex flex-col items-center gap-2 p-3 border-2 border-gray-50 rounded-2xl hover:border-primary hover:bg-primary/5 transition-all group"
-          >
-            <div className="p-2 rounded-xl bg-gray-50 group-hover:bg-primary/10 transition-colors">
-              <Key size={20} className="text-gray-400 group-hover:text-primary transition-colors" />
-            </div>
-            <span className="text-[8px] font-black text-gray-400 group-hover:text-primary tracking-widest">Tenant</span>
-          </Link>
-          <Link
-            href={`/${locale}/owner/register`}
-            className="flex flex-col items-center gap-2 p-3 border-2 border-gray-50 rounded-2xl hover:border-primary hover:bg-primary/5 transition-all group"
-          >
-            <div className="p-2 rounded-xl bg-gray-50 group-hover:bg-primary/10 transition-colors">
-              <Home size={20} className="text-gray-400 group-hover:text-primary transition-colors" />
-            </div>
-            <span className="text-[8px] font-black text-gray-400 group-hover:text-primary tracking-widest">Owner</span>
-          </Link>
-          <Link
-            href={`/${locale}/agent/register`}
-            className="flex flex-col items-center gap-2 p-3 border-2 border-gray-50 rounded-2xl hover:border-primary hover:bg-primary/5 transition-all group"
-          >
-            <div className="p-2 rounded-xl bg-gray-50 group-hover:bg-primary/10 transition-colors">
-              <Briefcase size={20} className="text-gray-400 group-hover:text-primary transition-colors" />
-            </div>
-            <span className="text-[8px] font-black text-gray-400 group-hover:text-primary tracking-widest">Agent</span>
-          </Link>
-        </div>
+        {!role && (
+          <div className="grid grid-cols-3 gap-3">
+            <Link
+              href={`/${locale}/tenant/register`}
+              className="flex flex-col items-center gap-2 p-3 border-2 border-gray-50 rounded-2xl hover:border-primary hover:bg-primary/5 transition-all group"
+            >
+              <div className="p-2 rounded-xl bg-gray-50 group-hover:bg-primary/10 transition-colors">
+                <Key size={20} className="text-gray-400 group-hover:text-primary transition-colors" />
+              </div>
+              <span className="text-[8px] font-black text-gray-400 group-hover:text-primary tracking-widest uppercase">Tenant</span>
+            </Link>
+            <Link
+              href={`/${locale}/owner/register`}
+              className="flex flex-col items-center gap-2 p-3 border-2 border-gray-50 rounded-2xl hover:border-primary hover:bg-primary/5 transition-all group"
+            >
+              <div className="p-2 rounded-xl bg-gray-50 group-hover:bg-primary/10 transition-colors">
+                <Home size={20} className="text-gray-400 group-hover:text-primary transition-colors" />
+              </div>
+              <span className="text-[8px] font-black text-gray-400 group-hover:text-primary tracking-widest uppercase">Owner</span>
+            </Link>
+            <Link
+              href={`/${locale}/agent/register`}
+              className="flex flex-col items-center gap-2 p-3 border-2 border-gray-50 rounded-2xl hover:border-primary hover:bg-primary/5 transition-all group"
+            >
+              <div className="p-2 rounded-xl bg-gray-50 group-hover:bg-primary/10 transition-colors">
+                <Briefcase size={20} className="text-gray-400 group-hover:text-primary transition-colors" />
+              </div>
+              <span className="text-[8px] font-black text-gray-400 group-hover:text-primary tracking-widest uppercase">Agent</span>
+            </Link>
+          </div>
+        )}
  
         <div className="relative">
           <div className="absolute inset-0 flex items-center">
@@ -191,10 +215,17 @@ export default function LoginClient({ locale }: LoginClientProps) {
               </label>
             </div>
  
-            <Link href={`/${locale}/forgot-password`} className="text-[10px] font-black text-primary hover:text-teal-700 transition-colors tracking-widest uppercase">
-              Forgot?
+            <Link href={`/${locale}/forgot-password`} className="text-[10px] font-black text-primary hover:underline transition-all tracking-widest uppercase">
+              Forgot Password?
             </Link>
           </div>
+ 
+          {serverError && (
+            <div className="flex items-center gap-2 p-3 rounded-xl bg-red-50 text-red-600 border border-red-100 animate-in fade-in slide-in-from-top-2">
+              <AlertCircle size={16} />
+              <p className="text-[10px] font-bold uppercase tracking-widest">{serverError}</p>
+            </div>
+          )}
  
           <button
             type="submit"

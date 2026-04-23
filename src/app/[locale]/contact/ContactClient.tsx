@@ -31,10 +31,17 @@ export default function ContactClient() {
     e.preventDefault();
     setLoading(true);
     try {
-      // Save to Firestore 'contacts' collection
-      await addDoc(collection(firestore, "contacts"), {
-        ...formData,
-        status: 'pending',
+      // Save to Firestore 'enquiries' collection (unified with admin panel)
+      await addDoc(collection(firestore, "enquiries"), {
+        userName: formData.name,
+        userEmail: formData.email,
+        phone: formData.phone,
+        message: formData.message,
+        subject: "General Inquiry",
+        type: 'contact',
+        source: 'Web Form',
+        status: 'open',
+        priority: 'medium',
         createdAt: new Date().toISOString()
       });
       
