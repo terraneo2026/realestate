@@ -37,7 +37,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import AdminLayout from '@/components/admin/AdminLayout';
+import AdminLayout from '../../../../components/admin/AdminLayout';
 import { toast } from 'sonner';
 import { exportToCSV } from '@/lib/export';
 import { clsx, type ClassValue } from 'clsx';

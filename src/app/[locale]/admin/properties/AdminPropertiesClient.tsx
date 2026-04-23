@@ -20,7 +20,7 @@ import {
   ChevronDown,
   Plus
 } from 'lucide-react';
-import AdminLayout from '@/components/admin/AdminLayout';
+import AdminLayout from '../../../../components/admin/AdminLayout';
 import { toast } from 'sonner';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';

@@ -22,7 +22,7 @@ import {
   Users,
   MessageSquare
 } from 'lucide-react';
-import AdminLayout from '@/components/admin/AdminLayout';
+import AdminLayout from '../../../../components/admin/AdminLayout';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 

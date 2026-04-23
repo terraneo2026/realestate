@@ -22,7 +22,7 @@ import {
   MoreVertical,
   Layers
 } from 'lucide-react';
-import AdminLayout from '@/components/admin/AdminLayout';
+import AdminLayout from '../../../../components/admin/AdminLayout';
 import { toast } from 'sonner';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';

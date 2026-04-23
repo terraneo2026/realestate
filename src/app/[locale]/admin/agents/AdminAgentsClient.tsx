@@ -40,7 +40,7 @@ import {
   ChevronDown,
   Key
 } from 'lucide-react';
-import AdminLayout from '@/components/admin/AdminLayout';
+import AdminLayout from '../../../../components/admin/AdminLayout';
 import { toast } from 'sonner';
 import { exportToCSV } from '@/lib/export';
 import { clsx, type ClassValue } from 'clsx';
