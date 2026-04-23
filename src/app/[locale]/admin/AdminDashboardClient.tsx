@@ -44,7 +44,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import AdminLayout from '../../../components/admin/AdminLayout';
+import AdminLayout from '@/components/admin-layout-panel/AdminLayout';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
@@ -279,9 +279,12 @@ export default function AdminDashboardClient() {
       setStats(prev => ({
         ...prev,
         totalProperties: props.length,
-        approvedProperties: props.filter((p: any) => p.status === 'approved' || p.status === 'published').length,
-        pendingProperties: props.filter((p: any) => p.status === 'pending').length,
-        rejectedProperties: props.filter((p: any) => p.status === 'rejected').length,
+        approvedProperties: props.filter((p: any) => {
+          const s = String(p.status || '').toLowerCase();
+          return s === 'approved' || s === 'published' || s === 'active';
+        }).length,
+        pendingProperties: props.filter((p: any) => String(p.status || 'pending').toLowerCase() === 'pending').length,
+        rejectedProperties: props.filter((p: any) => String(p.status || '').toLowerCase() === 'rejected').length,
       }));
 
       // Update recent properties (sorted by date)

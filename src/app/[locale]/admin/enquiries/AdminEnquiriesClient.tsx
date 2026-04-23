@@ -24,7 +24,7 @@ import {
   ArrowRight,
   UserCheck
 } from 'lucide-react';
-import AdminLayout from '../../../../components/admin/AdminLayout';
+import AdminLayout from '@/components/admin-layout-panel/AdminLayout';
 import { toast } from 'sonner';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
@@ -224,28 +224,28 @@ export default function AdminEnquiriesClient() {
                             {(enq.status === 'open' || !enq.status) && (
                               <button 
                                 onClick={() => handleStatusUpdate(enq.id, 'viewed')}
-                                className="p-3 bg-white border border-gray-100 text-gray-400 hover:text-blue-500 hover:border-blue-100 rounded-xl shadow-sm transition-all"
+                                className="px-4 py-2 bg-blue-50 text-blue-600 rounded-xl font-black text-[9px] uppercase tracking-widest hover:bg-blue-600 hover:text-white transition-all shadow-sm flex items-center gap-2"
                                 title="Mark Viewed"
                               >
-                                 <Eye size={18} />
+                                 <Eye size={14} /> Viewed
                               </button>
                             )}
                             {(enq.status === 'viewed' || enq.status === 'open' || !enq.status) && (
                               <button 
                                 onClick={() => handleStatusUpdate(enq.id, 'responded')}
-                                className="p-3 bg-white border border-gray-100 text-gray-400 hover:text-orange-500 hover:border-orange-100 rounded-xl shadow-sm transition-all"
+                                className="px-4 py-2 bg-orange-50 text-orange-600 rounded-xl font-black text-[9px] uppercase tracking-widest hover:bg-orange-600 hover:text-white transition-all shadow-sm flex items-center gap-2"
                                 title="Mark Responded"
                               >
-                                 <UserCheck size={18} />
+                                 <UserCheck size={14} /> Responded
                               </button>
                             )}
                             {enq.status !== 'resolved' && (
                               <button 
                                 onClick={() => handleStatusUpdate(enq.id, 'resolved')}
-                                className="p-3 bg-white border border-gray-100 text-gray-400 hover:text-green-500 hover:border-green-100 rounded-xl shadow-sm transition-all"
+                                className="px-4 py-2 bg-green-50 text-green-600 rounded-xl font-black text-[9px] uppercase tracking-widest hover:bg-green-600 hover:text-white transition-all shadow-sm flex items-center gap-2"
                                 title="Mark Resolved"
                               >
-                                 <CheckCircle2 size={18} />
+                                 <CheckCircle2 size={14} /> Resolve
                               </button>
                             )}
                             <button className="p-3 bg-white border border-gray-100 text-gray-400 hover:text-primary hover:border-primary/20 rounded-xl shadow-sm transition-all">

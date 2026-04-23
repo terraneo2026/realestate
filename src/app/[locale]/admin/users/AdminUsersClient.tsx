@@ -24,7 +24,7 @@ import {
   Download,
   Users
 } from 'lucide-react';
-import AdminLayout from '../../../../components/admin/AdminLayout';
+import AdminLayout from '@/components/admin-layout-panel/AdminLayout';
 import { toast } from 'sonner';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';

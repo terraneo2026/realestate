@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { firestore } from '@/lib/firebase';
-import { collection, query, getDocs, where, doc, updateDoc, deleteDoc, orderBy, limit, onSnapshot } from 'firebase/firestore';
+import { collection, query, getDocs, where, doc, updateDoc, deleteDoc, orderBy, limit, onSnapshot, addDoc } from 'firebase/firestore';
 import { 
   Users, 
   Search, 
@@ -37,7 +37,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import AdminLayout from '../../../../components/admin/AdminLayout';
+import AdminLayout from '@/components/admin-layout-panel/AdminLayout';
 import { toast } from 'sonner';
 import { exportToCSV } from '@/lib/export';
 import { clsx, type ClassValue } from 'clsx';
@@ -55,16 +55,18 @@ export default function AdminCustomersClient() {
    const [loading, setLoading] = useState(true);
    const [activeTab, setActiveTab] = useState('all');
    const [searchTerm, setSearchTerm] = useState('');
-   const [stats, setStats] = useState({
-     total: 0,
-     tenants: 0,
-     owners: 0,
-     agents: 0,
-     verified: 0,
-   });
    const [selectedUser, setSelectedUser] = useState<any>(null);
   const [isEditing, setIsEditing] = useState(false);
+  const [isCreating, setIsCreating] = useState(false);
   const [editForm, setEditForm] = useState<any>(null);
+  const [newUserForm, setNewUserForm] = useState<any>({
+    fullName: '',
+    email: '',
+    mobile: '',
+    role: 'tenant',
+    kyc_status: 'unverified',
+    accountStatus: 'active'
+  });
   const [saving, setSaving] = useState(false);
   const [userInsights, setUserInsights] = useState<any>({});
 
@@ -75,57 +77,71 @@ export default function AdminCustomersClient() {
     { id: 'agent', label: 'Agents' },
   ];
 
+  // Real-time listener for users
   useEffect(() => {
     const q = collection(firestore, 'users');
     const unsubscribe = onSnapshot(q, (snap) => {
-      let fetched = snap.docs.map(doc => ({ id: doc.id, ...(doc.data() as any) }));
+      const fetched = snap.docs.map(doc => ({ id: doc.id, ...(doc.data() as any) }));
       
-      // Client side role filtering
-      if (activeTab !== 'all') {
-        fetched = fetched.filter(u => u.role === activeTab);
-      }
-
       // Sort by createdAt desc
       fetched.sort((a: any, b: any) => {
-        const dateA = a.createdAt?.toDate ? a.createdAt.toDate() : new Date(a.createdAt || 0);
-        const dateB = b.createdAt?.toDate ? b.createdAt.toDate() : new Date(b.createdAt || 0);
-        return dateB - dateA;
+        const getDate = (val: any) => {
+          if (!val) return new Date(0);
+          if (typeof val.toDate === 'function') return val.toDate();
+          return new Date(val);
+        };
+        return getDate(b.createdAt || b.created_at).getTime() - getDate(a.createdAt || a.created_at).getTime();
       });
 
       setUsers(fetched);
-      
-      setStats({
-        total: snap.docs.length,
-        tenants: snap.docs.filter(d => d.data().role === 'tenant').length,
-        owners: snap.docs.filter(d => d.data().role === 'owner').length,
-        agents: snap.docs.filter(d => d.data().role === 'agent').length,
-        verified: snap.docs.filter(d => d.data().kyc_status === 'verified').length,
-      });
+      setLoading(false);
+    }, (error) => {
+      console.error("Error fetching users:", error);
+      toast.error("Failed to load users");
       setLoading(false);
     });
 
     return () => unsubscribe();
-  }, [activeTab]);
+  }, []);
 
+  // Optimized statistics calculation
+  const stats = useMemo(() => {
+    return {
+      total: users.length,
+      tenants: users.filter(u => u.role === 'tenant' || u.role === 'customer').length,
+      owners: users.filter(u => u.role === 'owner').length,
+      agents: users.filter(u => u.role === 'agent').length,
+      verified: users.filter(u => u.kyc_status === 'verified').length,
+    };
+  }, [users]);
+
+  // Optimized user insights calculation
   useEffect(() => {
-    // Separate listener for property counts to keep insights updated
+    if (users.length === 0) return;
+
     const unsubscribeProps = onSnapshot(collection(firestore, 'properties'), (snap) => {
       const allProps = snap.docs.map(d => d.data());
-      const insights: any = {};
       
+      // Create maps for faster lookup
+      const ownerCountMap: any = {};
+      const agentCountMap: any = {};
+      
+      allProps.forEach(p => {
+        if (p.ownerId) ownerCountMap[p.ownerId] = (ownerCountMap[p.ownerId] || 0) + 1;
+        if (p.agentId) agentCountMap[p.agentId] = (agentCountMap[p.agentId] || 0) + 1;
+      });
+
+      const insights: any = {};
       users.forEach(user => {
-        if (user.role === 'owner' || user.role === 'agent') {
-          insights[user.id] = {
-            type: 'listings',
-            count: allProps.filter(p => p.ownerId === user.id || p.agentId === user.id).length
-          };
-        } else if (user.role === 'tenant') {
-          insights[user.id] = {
-            type: 'bookings',
-            count: 0 
-          };
+        if (user.role === 'owner') {
+          insights[user.id] = { type: 'listings', count: ownerCountMap[user.id] || 0 };
+        } else if (user.role === 'agent') {
+          insights[user.id] = { type: 'listings', count: agentCountMap[user.id] || 0 };
+        } else {
+          insights[user.id] = { type: 'bookings', count: 0 };
         }
       });
+      
       setUserInsights(insights);
     });
 
@@ -148,6 +164,37 @@ export default function AdminCustomersClient() {
     } catch (error) {
       console.error("Error updating user:", error);
       toast.error("Failed to update user");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleCreateUser = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSaving(true);
+    try {
+      // For a real production app, we would use Firebase Admin SDK via an API route
+      // to create a user in Firebase Auth. For now, we'll just add to Firestore
+      // as a mock or if the user will sign up later with the same email.
+      const userRef = await addDoc(collection(firestore, 'users'), {
+        ...newUserForm,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      });
+      
+      toast.success("User created successfully in database");
+      setIsCreating(false);
+      setNewUserForm({
+        fullName: '',
+        email: '',
+        mobile: '',
+        role: 'tenant',
+        kyc_status: 'unverified',
+        accountStatus: 'active'
+      });
+    } catch (error) {
+      console.error("Error creating user:", error);
+      toast.error("Failed to create user");
     } finally {
       setSaving(false);
     }
@@ -179,12 +226,25 @@ export default function AdminCustomersClient() {
     }
   };
 
-  const filteredUsers = users.filter(u => {
-    const name = u.fullName || u.name || '';
-    return name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-           u.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-           u.mobile?.includes(searchTerm);
-  });
+  // Filtering and searching
+  const filteredUsers = useMemo(() => {
+    let filtered = users;
+    
+    if (activeTab !== 'all') {
+      filtered = filtered.filter(u => u.role === activeTab || (activeTab === 'tenant' && u.role === 'customer'));
+    }
+    
+    if (searchTerm) {
+      const s = searchTerm.toLowerCase();
+      filtered = filtered.filter(u => 
+        (u.fullName || u.name || '').toLowerCase().includes(s) ||
+        (u.email || '').toLowerCase().includes(s) ||
+        (u.mobile || '').includes(s)
+      );
+    }
+    
+    return filtered;
+  }, [users, activeTab, searchTerm]);
 
   return (
     <AdminLayout>
@@ -203,7 +263,10 @@ export default function AdminCustomersClient() {
            >
               <Download size={18} /> Export list
            </button>
-           <button className="h-14 px-8 bg-primary text-white rounded-2xl font-bold text-xs tracking-tight flex items-center gap-2 shadow-xl shadow-primary/20 hover:scale-105 active:scale-95 transition-all">
+           <button 
+             onClick={() => setIsCreating(true)}
+             className="h-14 px-8 bg-primary text-white rounded-2xl font-bold text-xs tracking-tight flex items-center gap-2 shadow-xl shadow-primary/20 hover:scale-105 active:scale-95 transition-all"
+           >
               <UserPlus size={18} /> Create user
            </button>
         </div>
@@ -703,6 +766,82 @@ export default function AdminCustomersClient() {
                       </div>
                    </div>
                  )}
+              </div>
+           </div>
+        </div>
+      )}
+      {/* Create User Modal */}
+      {isCreating && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/60 backdrop-blur-md">
+           <div className="bg-white w-full max-w-3xl rounded-[3rem] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300 flex flex-col">
+              <div className="p-10 border-b border-gray-50 flex justify-between items-center shrink-0">
+                 <div>
+                    <h2 className="text-3xl font-bold text-gray-900 tracking-tight">Create new user</h2>
+                    <p className="text-xs font-bold text-gray-400 tracking-tight mt-1">Add a new member to the Relocate platform</p>
+                 </div>
+                 <button onClick={() => setIsCreating(false)} className="p-3 hover:bg-gray-50 rounded-2xl transition-all text-gray-400"><X size={32} /></button>
+              </div>
+              
+              <div className="p-10">
+                 <form onSubmit={handleCreateUser} className="space-y-8">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                       <div className="space-y-2">
+                          <label className="text-xs font-bold text-gray-400 ml-2">Full name</label>
+                          <input 
+                            required
+                            type="text" 
+                            className="w-full px-6 py-4 bg-gray-50 border border-gray-100 rounded-2xl focus:border-primary outline-none font-bold text-sm"
+                            placeholder="e.g. Rahul Sharma"
+                            value={newUserForm.fullName}
+                            onChange={(e) => setNewUserForm({...newUserForm, fullName: e.target.value})}
+                          />
+                       </div>
+                       <div className="space-y-2">
+                          <label className="text-xs font-bold text-gray-400 ml-2">Email address</label>
+                          <input 
+                            required
+                            type="email" 
+                            className="w-full px-6 py-4 bg-gray-50 border border-gray-100 rounded-2xl focus:border-primary outline-none font-bold text-sm"
+                            placeholder="rahul@example.com"
+                            value={newUserForm.email}
+                            onChange={(e) => setNewUserForm({...newUserForm, email: e.target.value})}
+                          />
+                       </div>
+                       <div className="space-y-2">
+                          <label className="text-xs font-bold text-gray-400 ml-2">Mobile number</label>
+                          <input 
+                            required
+                            type="text" 
+                            className="w-full px-6 py-4 bg-gray-50 border border-gray-100 rounded-2xl focus:border-primary outline-none font-bold text-sm"
+                            placeholder="10-digit mobile"
+                            value={newUserForm.mobile}
+                            onChange={(e) => setNewUserForm({...newUserForm, mobile: e.target.value})}
+                          />
+                       </div>
+                       <div className="space-y-2">
+                          <label className="text-xs font-bold text-gray-400 ml-2">User role</label>
+                          <select 
+                            className="w-full px-6 py-4 bg-gray-50 border border-gray-100 rounded-2xl focus:border-primary outline-none font-bold text-sm appearance-none cursor-pointer"
+                            value={newUserForm.role}
+                            onChange={(e) => setNewUserForm({...newUserForm, role: e.target.value})}
+                          >
+                             <option value="tenant">Tenant</option>
+                             <option value="owner">Owner</option>
+                             <option value="agent">Agent</option>
+                             <option value="staff">Staff</option>
+                          </select>
+                       </div>
+                    </div>
+                    
+                    <button 
+                      type="submit"
+                      disabled={saving}
+                      className="w-full py-5 bg-primary text-white rounded-[1.5rem] font-bold text-sm tracking-widest shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 flex items-center justify-center gap-3"
+                    >
+                       {saving ? <Loader2 className="animate-spin" size={20} /> : <UserPlus size={20} />}
+                       CREATE USER ACCOUNT
+                    </button>
+                 </form>
               </div>
            </div>
         </div>

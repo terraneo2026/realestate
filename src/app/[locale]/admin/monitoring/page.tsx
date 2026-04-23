@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import AdminLayout from '../../../../components/admin/AdminLayout';
+import AdminLayout from '@/components/admin-layout-panel/AdminLayout';
 import { Activity, ShieldCheck, Zap, Server, Database, Globe, Cpu, MemoryStick as Memory, HardDrive, Network, Loader2 } from 'lucide-react';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
