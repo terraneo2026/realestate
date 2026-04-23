@@ -21,13 +21,25 @@ if (!firebaseConfig.apiKey) {
   console.error("[DEBUG] Firebase API Key is missing in firebase.ts!");
 } else {
   console.log("[DEBUG] Firebase initialized with API Key:", firebaseConfig.apiKey.substring(0, 5) + "...");
+  console.log("[DEBUG] Project ID:", firebaseConfig.projectId);
 }
 
 const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
-const auth = getAuth(app);
-const db = getDatabase(app);
-const firestore = getFirestore(app);
-const storage = getStorage(app);
+
+// Use lazy initialization for services to avoid build-time errors if config is missing
+let auth: any;
+let db: any;
+let firestore: any;
+let storage: any;
+
+try {
+  auth = getAuth(app);
+  db = getDatabase(app);
+  firestore = getFirestore(app);
+  storage = getStorage(app);
+} catch (error) {
+  console.error("[DEBUG] Error initializing Firebase services:", error);
+}
 
 // Analytics - client-side only and check if supported
 let analytics;

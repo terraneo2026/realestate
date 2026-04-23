@@ -3,6 +3,9 @@
 import React from 'react';
 import PropertyForm from '@/components/PropertyForm/PropertyForm';
 import AdminLayout from '@/components/admin-layout-panel/AdminLayout';
+
+export const dynamic = 'force-dynamic';
+
 import { ChevronLeft } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';

@@ -2,6 +2,9 @@
 
 import React from 'react';
 import AdminLayout from '@/components/admin-layout-panel/AdminLayout';
+
+export const dynamic = 'force-dynamic';
+
 import { Activity, ShieldCheck, Zap, Server, Database, Globe, Cpu, MemoryStick as Memory, HardDrive, Network, Loader2 } from 'lucide-react';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';

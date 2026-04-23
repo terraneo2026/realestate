@@ -1,6 +1,8 @@
 import React from 'react';
 import AdminSubscriptionsClient from './AdminSubscriptionsClient';
 
+export const dynamic = 'force-dynamic';
+
 export const metadata = {
   title: 'Subscriptions Control | Admin | Relocate',
   description: 'Manage platform plans, featured upgrades, and renewals',

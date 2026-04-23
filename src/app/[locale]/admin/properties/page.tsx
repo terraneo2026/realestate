@@ -1,6 +1,8 @@
 import React from 'react';
 import AdminPropertiesClient from './AdminPropertiesClient';
 
+export const dynamic = 'force-dynamic';
+
 export const metadata = {
   title: 'Properties Moderation | Admin | Relocate',
   description: 'Manage and moderate property listings across the platform',

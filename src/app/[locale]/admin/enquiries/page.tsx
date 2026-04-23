@@ -1,6 +1,8 @@
 import React from 'react';
 import AdminEnquiriesClient from './AdminEnquiriesClient';
 
+export const dynamic = 'force-dynamic';
+
 export const metadata = {
   title: 'Enquiries & Support | Admin | Relocate',
   description: 'Manage platform support tickets and inbound enquiries',
