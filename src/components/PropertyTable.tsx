@@ -17,7 +17,9 @@ import {
   XCircle, 
   MoreVertical,
   ExternalLink,
-  ChevronDown
+  ChevronDown,
+  MapPin,
+  Clock
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
