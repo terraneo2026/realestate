@@ -236,7 +236,7 @@ export default function PropertyForm() {
       }
 
       // 2. Add Property
-      const isAdmin = pathname.includes('/admin/');
+      const isAdmin = pathname?.includes('/admin/');
       await addDoc(collection(firestore, 'properties'), {
         ...data,
         projectId: finalProjectId,
@@ -253,7 +253,7 @@ export default function PropertyForm() {
 
       toast.success("Property listed successfully! Awaiting admin approval.");
       
-      if (pathname.includes('/admin/')) {
+      if (pathname?.includes('/admin/')) {
         router.push(`/${locale}/admin/properties`);
       } else {
         router.push(`/${locale}/owner/properties`);

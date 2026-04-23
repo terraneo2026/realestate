@@ -19,6 +19,7 @@ interface Property {
   featured?: boolean;
   premium?: boolean;
   slug: string;
+  createdAt?: Date;
 }
 
 const PropertyGrid = () => {

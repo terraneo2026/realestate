@@ -26,6 +26,8 @@ export interface Property {
   furnishing?: string;
   facing?: string;
   category_id?: string;
+  status?: string;
+  createdAt?: Date | any;
 }
 
 // Category Types

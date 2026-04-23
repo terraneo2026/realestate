@@ -24,6 +24,7 @@ interface Property {
   facing?: string;
   images?: string[];
   status: string;
+  createdAt: Date;
 }
 
 export default function PropertyList({ 
