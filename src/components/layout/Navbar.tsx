@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
-import { MapPin, Search, Mail, Phone, User, Menu, X, Globe, Camera, Users, LayoutDashboard } from 'lucide-react';
+import { MapPin, Mail, Phone, User, Menu, X, Globe, Camera, Users, LayoutDashboard } from 'lucide-react';
 import LocationPicker from './LocationPicker';
 import { Button } from '@/components/ui';
 import { Container } from './Container';
@@ -12,6 +12,7 @@ import AuthModal from '../AuthModal';
 import { auth, firestore } from '@/lib/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
+import NotificationBell from '../NotificationBell';
 
 const NAV_LINKS = [
   { label: 'Home', href: '/' },
@@ -66,7 +67,7 @@ export function Navbar() {
       <div className="bg-white">
         <Container className="py-2 md:py-1">
           <div className="flex items-center justify-between gap-4">
-            {/* Logo and Search */}
+            {/* Logo */}
             <div className="flex items-center gap-6 flex-shrink-0 group">
               <Link href={`/${locale}`} className="flex items-center gap-3">
                 <div className="relative w-16 md:w-20 h-16 md:h-20 overflow-hidden rounded-2xl transition-transform duration-300 group-hover:scale-105 shadow-sm">
@@ -80,21 +81,6 @@ export function Navbar() {
                   />
                 </div>
               </Link>
-
-              {/* Quick Search Bar near Logo */}
-              <div className="hidden lg:flex items-center relative group/search">
-                <Search className="absolute left-4 w-4 h-4 text-gray-400 group-focus-within/search:text-primary transition-colors" />
-                <input
-                  type="text"
-                  placeholder="Quick search..."
-                  className="pl-11 pr-4 py-2.5 bg-gray-50 border border-gray-100 rounded-2xl text-xs font-bold w-[200px] focus:w-[300px] focus:bg-white focus:border-primary/20 focus:ring-4 focus:ring-primary/5 transition-all outline-none"
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      router.push(`/${locale}/properties?keyword=${encodeURIComponent(e.currentTarget.value)}`);
-                    }
-                  }}
-                />
-              </div>
             </div>
 
             {/* Location Selector - Desktop Only */}
@@ -117,16 +103,19 @@ export function Navbar() {
 
             {/* Desktop Auth/Dashboard Button */}
             {user ? (
-              <Link href={userRole === 'admin' ? '/admin' : `/${locale}/${userRole}/dashboard`}>
-                <Button
-                  variant="primary"
-                  size="md"
-                  className="hidden md:flex items-center gap-2 flex-shrink-0 rounded-full px-8"
-                >
-                  <LayoutDashboard className="w-4 h-4" />
-                  <span className="hidden lg:inline">Dashboard</span>
-                </Button>
-              </Link>
+              <div className="flex items-center gap-4">
+                <NotificationBell />
+                <Link href={userRole === 'admin' ? '/admin' : `/${locale}/${userRole}/dashboard`}>
+                  <Button
+                    variant="primary"
+                    size="md"
+                    className="hidden md:flex items-center gap-2 flex-shrink-0 rounded-full px-8"
+                  >
+                    <LayoutDashboard className="w-4 h-4" />
+                    <span className="hidden lg:inline">Dashboard</span>
+                  </Button>
+                </Link>
+              </div>
             ) : (
               <Button
                 variant="primary"

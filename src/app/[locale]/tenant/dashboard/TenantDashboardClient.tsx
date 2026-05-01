@@ -7,11 +7,14 @@ import { auth, firestore } from "@/lib/firebase";
 import { doc, getDoc, collection, query, where, getDocs, limit, orderBy } from "firebase/firestore";
 import StatsCard from "@/components/StatsCard";
 import DashboardLayout from "@/components/DashboardLayout";
+import TenantKYCForm from "@/components/TenantWorkflow/TenantKYCForm";
+import VisitManagementDashboard from "@/components/TenantWorkflow/VisitManagementDashboard";
+import RentPaymentsDashboard from "@/components/TenantWorkflow/RentPaymentsDashboard";
 import { 
   Heart, Search, MessageSquare, Calendar, 
   ArrowRight, Clock, CheckCircle2, AlertCircle, 
   Wallet, User as UserIcon, Settings, ChevronRight,
-  Bell
+  Bell, ShieldCheck, CreditCard, LayoutDashboard
 } from "lucide-react";
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
@@ -27,6 +30,7 @@ export default function TenantDashboardClient() {
 
   const [loading, setLoading] = useState(true);
   const [userData, setUserData] = useState<any>(null);
+  const [activeTab, setActiveTab] = useState<'overview' | 'visits' | 'rent' | 'kyc'>('overview');
   const [stats, setStats] = useState({
     savedCount: 0,
     searchCount: 0,
@@ -135,199 +139,224 @@ export default function TenantDashboardClient() {
           <p className="text-gray-500 mt-2 font-bold tracking-tight uppercase text-[10px]">Relocate Tenant Dashboard • {new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</p>
         </div>
         <div className="flex items-center gap-3">
-           <div className={cn(
-             "px-4 py-2 rounded-2xl text-[10px] font-black tracking-widest uppercase border",
-             userData?.kyc_status === 'verified' ? "bg-green-50 border-green-100 text-green-600" : "bg-orange-50 border-orange-100 text-orange-600"
-           )}>
-             KYC: {userData?.kyc_status || 'Pending'}
-           </div>
+           <button 
+             onClick={() => setActiveTab('kyc')}
+             className={cn(
+               "px-4 py-2 rounded-2xl text-[10px] font-black tracking-widest uppercase border transition-all",
+               userData?.kyc_status === 'approved' ? "bg-green-50 border-green-100 text-green-600" : 
+               userData?.kyc_status === 'rejected' ? "bg-red-50 border-red-100 text-red-600" :
+               "bg-orange-50 border-orange-100 text-orange-600 hover:bg-orange-100"
+             )}
+           >
+             KYC: {userData?.kyc_status || 'Not Started'}
+           </button>
            <Link href={`/${locale}/tenant/profile`} className="w-12 h-12 rounded-2xl bg-white border border-gray-100 shadow-sm flex items-center justify-center hover:bg-gray-50 transition-all">
              <Settings size={20} className="text-gray-400" />
            </Link>
         </div>
       </div>
 
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
-        <StatsCard
-          label="Saved Items"
-          value={stats.savedCount.toString()}
-          icon={<Heart size={20} className="text-red-500" fill="currentColor" />}
-          className="rounded-3xl border-none shadow-xl shadow-gray-200/50"
-        />
-        <StatsCard
-          label="Recent Searches"
-          value={stats.searchCount.toString()}
-          icon={<Search size={20} className="text-blue-500" />}
-          className="rounded-3xl border-none shadow-xl shadow-gray-200/50"
-        />
-        <StatsCard
-          label="Active Bookings"
-          value={stats.bookingCount.toString()}
-          icon={<Calendar size={20} className="text-orange-500" />}
-          className="rounded-3xl border-none shadow-xl shadow-gray-200/50"
-        />
-        <StatsCard
-          label="Total Payments"
-          value={`₹${stats.paymentTotal.toLocaleString()}`}
-          icon={<Wallet size={20} className="text-green-500" />}
-          className="rounded-3xl border-none shadow-xl shadow-gray-200/50"
-        />
+      {/* Tab Navigation */}
+      <div className="flex overflow-x-auto no-scrollbar gap-2 p-1.5 bg-white rounded-2xl md:rounded-[2rem] border border-gray-100 shadow-xl shadow-gray-200/50 mb-10">
+        {[
+          { id: 'overview', label: 'Overview', icon: LayoutDashboard },
+          { id: 'visits', label: 'Visits & Tours', icon: Calendar },
+          { id: 'rent', label: 'Rent & Payments', icon: CreditCard },
+          { id: 'kyc', label: 'Verification', icon: ShieldCheck },
+        ].map((tab) => {
+          const Icon = tab.icon;
+          const isActive = activeTab === tab.id;
+          return (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id as any)}
+              className={cn(
+                "flex items-center gap-3 px-6 py-4 rounded-xl md:rounded-2xl transition-all whitespace-nowrap group",
+                isActive 
+                  ? "bg-gray-900 text-white shadow-xl shadow-gray-400/20" 
+                  : "text-gray-400 hover:bg-gray-50 hover:text-gray-600"
+              )}
+            >
+              <Icon size={18} />
+              <span className="text-[10px] md:text-xs font-black uppercase tracking-widest">{tab.label}</span>
+            </button>
+          );
+        })}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
-        {/* Main Content Area */}
-        <div className="lg:col-span-2 space-y-10">
-          
-          {/* Recent Bookings */}
-          <div className="bg-white rounded-[2.5rem] shadow-2xl shadow-gray-200/50 border border-gray-100 p-10">
-            <div className="flex justify-between items-center mb-8">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-orange-50 rounded-2xl flex items-center justify-center">
-                  <Clock size={20} className="text-orange-500" />
-                </div>
-                <h2 className="text-2xl font-black text-gray-900 tracking-tight">Recent Visits</h2>
-              </div>
-              <Link href={`/${locale}/tenant/bookings`} className="text-[10px] font-black text-primary hover:underline uppercase tracking-widest">View All</Link>
-            </div>
-            
-            <div className="space-y-4">
-              {recentBookings.length > 0 ? recentBookings.map((booking) => (
-                <div key={booking.id} className="group flex items-center gap-6 p-5 rounded-3xl bg-gray-50 border border-gray-100 hover:bg-white hover:border-primary/20 hover:shadow-xl hover:shadow-gray-200/30 transition-all">
-                  <div className="relative w-20 h-20 rounded-2xl overflow-hidden shadow-md">
-                    <img src={booking.propertyImage || '/placeholder.svg'} alt="" className="object-cover w-full h-full" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <h4 className="font-black text-gray-900 truncate text-lg group-hover:text-primary transition-colors">{booking.propertyTitle}</h4>
-                    <div className="flex items-center gap-4 mt-2">
-                       <p className="text-xs font-bold text-gray-400 flex items-center gap-1">
-                         <Calendar size={12} /> {new Date(booking.bookingDate).toLocaleDateString()}
-                       </p>
-                       <p className="text-xs font-bold text-gray-400 flex items-center gap-1">
-                         <Clock size={12} /> {booking.bookingSlot}
-                       </p>
-                    </div>
-                  </div>
-                  <div className={cn(
-                    "px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border",
-                    booking.status === 'approved' ? "bg-green-50 border-green-100 text-green-600" : 
-                    booking.status === 'pending' ? "bg-blue-50 border-blue-100 text-blue-600" :
-                    "bg-gray-100 border-gray-200 text-gray-400"
-                  )}>
-                    {booking.status}
-                  </div>
-                </div>
-              )) : (
-                <div className="flex flex-col items-center justify-center py-10 text-center">
-                   <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center text-gray-300 mb-4">
-                      <Calendar size={32} />
-                   </div>
-                   <p className="text-sm font-bold text-gray-400 uppercase tracking-widest">No upcoming visits</p>
-                   <Link href={`/${locale}/properties`} className="mt-4 text-xs font-black text-primary hover:underline uppercase tracking-widest">Book your first tour</Link>
-                </div>
-              )}
-            </div>
+      {activeTab === 'overview' && (
+        <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+          {/* Stats Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
+            <StatsCard
+              label="Saved Items"
+              value={stats.savedCount.toString()}
+              icon={<Heart size={20} className="text-red-500" fill="currentColor" />}
+              className="rounded-3xl border-none shadow-xl shadow-gray-200/50"
+            />
+            <StatsCard
+              label="Recent Searches"
+              value={stats.searchCount.toString()}
+              icon={<Search size={20} className="text-blue-500" />}
+              className="rounded-3xl border-none shadow-xl shadow-gray-200/50"
+            />
+            <StatsCard
+              label="Active Visits"
+              value={stats.bookingCount.toString()}
+              icon={<Calendar size={20} className="text-orange-500" />}
+              className="rounded-3xl border-none shadow-xl shadow-gray-200/50"
+            />
+            <StatsCard
+              label="Total Paid"
+              value={`₹${stats.paymentTotal.toLocaleString()}`}
+              icon={<Wallet size={20} className="text-green-500" />}
+              className="rounded-3xl border-none shadow-xl shadow-gray-200/50"
+            />
           </div>
 
-          {/* Recent Saved Properties */}
-          <div className="bg-white rounded-[2.5rem] shadow-2xl shadow-gray-200/50 border border-gray-100 p-10">
-            <div className="flex justify-between items-center mb-8">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-red-50 rounded-2xl flex items-center justify-center">
-                  <Heart size={20} className="text-red-500" fill="currentColor" />
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
+            {/* Main Content Area */}
+            <div className="lg:col-span-2 space-y-10">
+              {/* Recent Bookings */}
+              <div className="bg-white rounded-[2.5rem] shadow-2xl shadow-gray-200/50 border border-gray-100 p-10">
+                <div className="flex justify-between items-center mb-8">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-orange-50 rounded-2xl flex items-center justify-center">
+                      <Clock size={20} className="text-orange-500" />
+                    </div>
+                    <h2 className="text-2xl font-black text-gray-900 tracking-tight">Upcoming Visits</h2>
+                  </div>
+                  <button onClick={() => setActiveTab('visits')} className="text-[10px] font-black text-primary hover:underline uppercase tracking-widest">Manage All</button>
                 </div>
-                <h2 className="text-2xl font-black text-gray-900 tracking-tight">Favorites</h2>
-              </div>
-              <Link href={`/${locale}/tenant/saved`} className="text-[10px] font-black text-primary hover:underline uppercase tracking-widest">View All</Link>
-            </div>
-            
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-              {recentSaved.length > 0 ? recentSaved.map((prop) => (
-                <Link key={prop.id} href={`/${locale}/property/${prop.slug}`} className="group block space-y-4">
-                   <div className="relative aspect-video rounded-[2rem] overflow-hidden shadow-lg group-hover:shadow-2xl transition-all duration-500">
-                      <img src={prop.image || (prop.images && prop.images[0]) || '/placeholder.svg'} alt="" className="object-cover w-full h-full group-hover:scale-110 transition-transform duration-700" />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-60" />
-                      <div className="absolute bottom-4 left-6">
-                         <p className="text-xl font-black text-white tracking-tight">₹{Number(prop.price).toLocaleString()}</p>
+                
+                <div className="space-y-4">
+                  {recentBookings.length > 0 ? recentBookings.map((booking) => (
+                    <div key={booking.id} className="group flex items-center gap-6 p-5 rounded-3xl bg-gray-50 border border-gray-100 hover:bg-white hover:border-primary/20 hover:shadow-xl hover:shadow-gray-200/30 transition-all">
+                      <div className="relative w-20 h-20 rounded-2xl overflow-hidden shadow-md">
+                        <img src={booking.propertyImage || '/placeholder.svg'} alt="" className="object-cover w-full h-full" />
                       </div>
-                   </div>
-                   <h4 className="font-black text-gray-900 truncate group-hover:text-primary transition-colors px-2">{prop.title}</h4>
-                </Link>
-              )) : (
-                <div className="col-span-full flex flex-col items-center justify-center py-10 text-center">
-                   <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center text-gray-300 mb-4">
-                      <Heart size={32} />
-                   </div>
-                   <p className="text-sm font-bold text-gray-400 uppercase tracking-widest">Your favorites list is empty</p>
+                      <div className="flex-1 min-w-0">
+                        <h4 className="font-black text-gray-900 truncate text-lg group-hover:text-primary transition-colors">{booking.propertyTitle}</h4>
+                        <div className="flex items-center gap-4 mt-2">
+                           <p className="text-xs font-bold text-gray-400 flex items-center gap-1">
+                             <Calendar size={12} /> {new Date(booking.bookingDate).toLocaleDateString()}
+                           </p>
+                           <p className="text-xs font-bold text-gray-400 flex items-center gap-1">
+                             <Clock size={12} /> {booking.bookingSlot}
+                           </p>
+                        </div>
+                      </div>
+                      <div className={cn(
+                        "px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border",
+                        booking.status === 'approved' ? "bg-green-50 border-green-100 text-green-600" : 
+                        booking.status === 'pending' ? "bg-blue-50 border-blue-100 text-blue-600" :
+                        "bg-gray-100 border-gray-200 text-gray-400"
+                      )}>
+                        {booking.status}
+                      </div>
+                    </div>
+                  )) : (
+                    <div className="flex flex-col items-center justify-center py-10 text-center">
+                       <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center text-gray-300 mb-4">
+                          <Calendar size={32} />
+                       </div>
+                       <p className="text-sm font-bold text-gray-400 uppercase tracking-widest">No upcoming visits</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Sidebar Actions */}
+            <div className="space-y-10">
+              <div className="bg-white rounded-[2.5rem] shadow-2xl shadow-gray-200/50 border border-gray-100 p-10">
+                <h2 className="text-2xl font-black text-gray-900 tracking-tight mb-8">Quick Actions</h2>
+                <div className="space-y-4">
+                  {[
+                    { label: 'Browse Properties', href: `/${locale}/properties`, icon: <Search size={18} />, color: 'primary' },
+                    { label: 'Visits & Tours', onClick: () => setActiveTab('visits'), icon: <Calendar size={18} />, color: 'orange' },
+                    { label: 'Rent Payments', onClick: () => setActiveTab('rent'), icon: <CreditCard size={18} />, color: 'blue' },
+                    { label: 'Messages', href: `/${locale}/tenant/messages`, icon: <MessageSquare size={18} />, color: 'green', badge: stats.inquiryCount },
+                    { label: 'Verification', onClick: () => setActiveTab('kyc'), icon: <ShieldCheck size={18} />, color: 'gray' },
+                  ].map((action) => {
+                    const Content = (
+                      <div className="flex items-center justify-between p-4 rounded-2xl bg-gray-50 hover:bg-white hover:shadow-xl hover:shadow-gray-200/30 border border-gray-50 hover:border-primary/10 transition-all group mb-2 cursor-pointer">
+                        <div className="flex items-center gap-4">
+                           <div className={cn(
+                             "w-10 h-10 rounded-xl flex items-center justify-center transition-all group-hover:scale-110",
+                             action.color === 'primary' ? "bg-primary/10 text-primary" :
+                             action.color === 'blue' ? "bg-blue-100 text-blue-600" :
+                             action.color === 'green' ? "bg-green-100 text-green-600" :
+                             action.color === 'orange' ? "bg-orange-100 text-orange-600" :
+                             "bg-gray-200 text-gray-600"
+                           )}>
+                             {action.icon}
+                           </div>
+                           <span className="text-xs font-black text-gray-700 uppercase tracking-widest">{action.label}</span>
+                        </div>
+                        <div className="flex items-center gap-3">
+                           {typeof action.badge === 'number' && action.badge > 0 && <span className="w-5 h-5 bg-red-500 text-white text-[10px] font-black rounded-full flex items-center justify-center animate-pulse">{action.badge}</span>}
+                           <ChevronRight size={14} className="text-gray-300 group-hover:text-primary group-hover:translate-x-1 transition-all" />
+                        </div>
+                      </div>
+                    );
+
+                    return action.href ? (
+                      <Link key={action.label} href={action.href}>{Content}</Link>
+                    ) : (
+                      <div key={action.label} onClick={action.onClick}>{Content}</div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {userData?.kyc_status !== 'approved' && (
+                <div className="bg-gradient-to-br from-gray-900 to-black rounded-[2.5rem] p-10 text-white shadow-2xl shadow-gray-400/20">
+                  <h3 className="text-xl font-black mb-4 tracking-tight">Unlock Priority Visits</h3>
+                  <p className="text-gray-400 text-xs mb-8 leading-relaxed font-bold tracking-tight uppercase">Verify your profile to start booking property tours.</p>
+                  <button onClick={() => setActiveTab('kyc')} className="flex items-center justify-center gap-3 w-full bg-white text-gray-900 py-4 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-primary hover:text-white transition-all shadow-xl">
+                    Complete KYC <ArrowRight size={16} />
+                  </button>
                 </div>
               )}
             </div>
           </div>
         </div>
+      )}
 
-        {/* Sidebar Actions */}
-        <div className="space-y-10">
-          
-          {/* Quick Actions Card */}
-          <div className="bg-white rounded-[2.5rem] shadow-2xl shadow-gray-200/50 border border-gray-100 p-10">
-            <h2 className="text-2xl font-black text-gray-900 tracking-tight mb-8">Quick Actions</h2>
-            <div className="space-y-4">
-              {[
-                { label: 'Browse Properties', href: `/${locale}/properties`, icon: <Search size={18} />, color: 'primary' },
-                { label: 'Notifications', href: `/${locale}/tenant/notifications`, icon: <Bell size={18} />, color: 'red' },
-                { label: 'Saved Searches', href: `/${locale}/tenant/searches`, icon: <Clock size={18} />, color: 'blue' },
-                { label: 'Messages', href: `/${locale}/tenant/messages`, icon: <MessageSquare size={18} />, color: 'green', badge: stats.inquiryCount },
-                { label: 'Payments', href: `/${locale}/tenant/payments`, icon: <Wallet size={18} />, color: 'orange' },
-                { label: 'My Profile', href: `/${locale}/tenant/profile`, icon: <UserIcon size={18} />, color: 'gray' },
-              ].map((action) => (
-                <Link key={action.label} href={action.href}>
-                  <div className="flex items-center justify-between p-4 rounded-2xl bg-gray-50 hover:bg-white hover:shadow-xl hover:shadow-gray-200/30 border border-gray-50 hover:border-primary/10 transition-all group mb-2">
-                    <div className="flex items-center gap-4">
-                       <div className={cn(
-                         "w-10 h-10 rounded-xl flex items-center justify-center transition-all group-hover:scale-110",
-                         action.color === 'primary' ? "bg-primary/10 text-primary" :
-                         action.color === 'blue' ? "bg-blue-100 text-blue-600" :
-                         action.color === 'green' ? "bg-green-100 text-green-600" :
-                         action.color === 'orange' ? "bg-orange-100 text-orange-600" :
-                         "bg-gray-200 text-gray-600"
-                       )}>
-                         {action.icon}
-                       </div>
-                       <span className="text-xs font-black text-gray-700 uppercase tracking-widest">{action.label}</span>
-                    </div>
-                    <div className="flex items-center gap-3">
-                       {typeof action.badge === 'number' && action.badge > 0 && <span className="w-5 h-5 bg-red-500 text-white text-[10px] font-black rounded-full flex items-center justify-center animate-pulse">{action.badge}</span>}
-                       <ChevronRight size={14} className="text-gray-300 group-hover:text-primary group-hover:translate-x-1 transition-all" />
-                    </div>
-                  </div>
-                </Link>
-              ))}
-            </div>
-          </div>
-
-          {/* Profile Completion */}
-          <div className="bg-gradient-to-br from-gray-900 to-black rounded-[2.5rem] p-10 text-white shadow-2xl shadow-gray-400/20">
-            <h3 className="text-xl font-black mb-4 tracking-tight">Complete Your Profile</h3>
-            <p className="text-gray-400 text-xs mb-8 leading-relaxed font-bold tracking-tight uppercase">Get verified to unlock priority bookings and direct owner contact.</p>
-            
-            <div className="space-y-6">
-               <div className="space-y-2">
-                  <div className="flex justify-between text-[10px] font-black uppercase tracking-widest">
-                     <span>Profile Completion</span>
-                     <span>65%</span>
-                  </div>
-                  <div className="h-2 bg-white/10 rounded-full overflow-hidden">
-                     <div className="h-full bg-primary w-[65%]" />
-                  </div>
-               </div>
-               <Link href={`/${locale}/tenant/profile`} className="flex items-center justify-center gap-3 w-full bg-white text-gray-900 py-4 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-primary hover:text-white transition-all shadow-xl">
-                 Verify KYC <ArrowRight size={16} />
-               </Link>
-            </div>
-          </div>
-          
+      {activeTab === 'visits' && (
+        <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+          <VisitManagementDashboard 
+            requests={recentBookings.map(b => ({
+              id: b.id,
+              propertyTitle: b.propertyTitle,
+              propertyImage: b.propertyImage,
+              status: b.status,
+              tokenAmount: b.tokenAmount || 500,
+              ownerStatus: 'Reviewing Profile',
+              scheduledAt: b.bookingDate ? `${new Date(b.bookingDate).toLocaleDateString()} @ ${b.bookingSlot}` : undefined
+            }))}
+          />
         </div>
-      </div>
+      )}
+
+      {activeTab === 'rent' && (
+        <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+          <RentPaymentsDashboard 
+            payments={[
+              { id: '1', month: 'May 2024', amount: 25000, status: 'pending', dueDate: '05 May 2024' },
+              { id: '2', month: 'Apr 2024', amount: 25000, status: 'paid', dueDate: '05 Apr 2024', paidAt: '03 Apr 2024', transactionId: 'TXN-98231' },
+              { id: '3', month: 'Mar 2024', amount: 25000, status: 'paid', dueDate: '05 Mar 2024', paidAt: '04 Mar 2024', transactionId: 'TXN-77123' },
+            ]}
+          />
+        </div>
+      )}
+
+      {activeTab === 'kyc' && (
+        <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+          <TenantKYCForm onComplete={() => setActiveTab('overview')} />
+        </div>
+      )}
     </DashboardLayout>
   );
 }

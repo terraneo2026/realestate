@@ -83,10 +83,9 @@ export default function AdminEnquiriesClient() {
       // Send notification to the user who sent the enquiry
       if (enquiry && enquiry.userId) {
         await sendNotification({
-          recipientId: enquiry.userId,
-          recipientRole: 'tenant', // Assuming tenants send enquiries
-          type: 'status_update',
-          category: 'system',
+          user_id: enquiry.userId,
+          role: 'tenant',
+          type: 'system',
           title: `Support update`,
           message: `Your enquiry "${enquiry.subject}" has been marked as ${newStatus}.`,
           metadata: { enquiryId: id, status: newStatus }
@@ -107,21 +106,21 @@ export default function AdminEnquiriesClient() {
   return (
     <AdminLayout>
       {/* Page Header */}
-      <div className="mb-12 flex flex-col md:flex-row md:items-end justify-between gap-8">
-        <div>
-          <h1 className="text-5xl font-bold text-gray-900 tracking-tight">Support & enquiries</h1>
-          <p className="text-gray-400 mt-2 font-semibold tracking-tight text-xs flex items-center gap-2">
-             <MessageSquare size={14} className="text-primary" /> Centralized hub for inbound leads and support tickets
+      <div className="mb-6 md:mb-12 flex flex-col md:flex-row md:items-end justify-between gap-4 md:gap-8 px-4 md:px-0">
+        <div className="flex-1 min-w-0">
+          <h1 className="text-2xl md:text-5xl font-bold text-gray-900 tracking-tight truncate">Support & enquiries</h1>
+          <p className="text-gray-400 mt-1 md:mt-2 font-semibold tracking-tight text-[10px] md:text-xs flex items-center gap-2">
+             <MessageSquare size={14} className="text-primary shrink-0" /> <span className="truncate">Centralized hub for inbound leads and support tickets</span>
           </p>
         </div>
-        <div className="flex gap-4">
-           <div className="flex gap-2 bg-white p-2 rounded-2xl shadow-sm border border-gray-100">
+        <div className="flex gap-4 w-full md:w-auto overflow-x-auto no-scrollbar -mx-4 px-4 md:mx-0 md:px-0">
+           <div className="flex gap-2 bg-white p-1.5 md:p-2 rounded-xl md:rounded-2xl shadow-sm border border-gray-100 min-w-max">
               {['all', 'open', 'viewed', 'responded', 'resolved'].map((status) => (
                 <button
                   key={status}
                   onClick={() => setFilterStatus(status)}
                   className={cn(
-                    "px-6 py-2 rounded-xl text-xs font-bold tracking-tight transition-all capitalize",
+                    "px-4 md:px-6 py-1.5 md:py-2 rounded-lg md:rounded-xl text-[10px] md:text-xs font-bold tracking-tight transition-all capitalize",
                     filterStatus === status ? "bg-primary text-white shadow-lg shadow-primary/20" : "text-gray-400 hover:bg-gray-50"
                   )}
                 >
@@ -133,72 +132,72 @@ export default function AdminEnquiriesClient() {
       </div>
 
       {/* Main Content Area */}
-      <div className="bg-white rounded-[3rem] shadow-2xl shadow-gray-200/50 border border-gray-100 overflow-hidden mb-12">
-        <div className="p-8 border-b border-gray-50 bg-white">
-           <div className="relative group max-w-xl">
-              <Search size={18} className="absolute left-6 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-primary transition-colors" />
+      <div className="bg-white rounded-2xl md:rounded-[3rem] shadow-2xl shadow-gray-200/50 border border-gray-100 overflow-hidden mb-8 md:mb-12 mx-4 md:mx-0">
+        <div className="p-4 md:p-8 border-b border-gray-50 bg-white">
+           <div className="relative group w-full md:max-w-xl">
+              <Search size={18} className="absolute left-4 md:left-6 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-primary transition-colors" />
               <input 
                 type="text" 
-                placeholder="Search by subject, message, or user..." 
-                className="w-full pl-16 pr-6 py-4 bg-gray-50 border-2 border-gray-50 rounded-2xl focus:border-primary focus:bg-white outline-none transition-all font-bold text-xs"
+                placeholder="Search enquiries..." 
+                className="w-full pl-12 md:pl-16 pr-4 md:pr-6 py-3 md:py-4 bg-gray-50 border-2 border-gray-50 rounded-xl md:rounded-2xl focus:border-primary focus:bg-white outline-none transition-all font-bold text-[10px] md:text-xs"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
            </div>
         </div>
 
-        <div className="overflow-x-auto">
-           <table className="w-full text-left">
-              <thead className="bg-gray-50/50 text-gray-400 text-xs font-bold tracking-tight border-b border-gray-50">
+        <div className="overflow-x-auto custom-scrollbar">
+           <table className="w-full text-left min-w-[800px] md:min-w-[1000px]">
+              <thead className="bg-gray-50/50 text-gray-400 text-[10px] md:text-xs font-bold tracking-tight border-b border-gray-50">
                  <tr>
-                    <th className="px-10 py-8">Enquiry details</th>
-                    <th className="px-6 py-8">Sender info</th>
-                    <th className="px-6 py-8 text-center">Type / source</th>
-                    <th className="px-6 py-8 text-center">Priority</th>
-                    <th className="px-6 py-8">Status</th>
-                    <th className="px-10 py-8 text-right">Actions</th>
+                    <th className="px-6 md:px-10 py-6 md:py-8">Enquiry details</th>
+                    <th className="px-4 md:px-6 py-6 md:py-8">Sender info</th>
+                    <th className="px-4 md:px-6 py-6 md:py-8 text-center">Type / source</th>
+                    <th className="px-4 md:px-6 py-6 md:py-8 text-center">Priority</th>
+                    <th className="px-4 md:px-6 py-6 md:py-8">Status</th>
+                    <th className="px-6 md:px-10 py-6 md:py-8 text-right">Actions</th>
                  </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
                  {filteredEnquiries.length > 0 ? filteredEnquiries.map((enq) => (
                    <tr key={enq.id} className="group hover:bg-gray-50/30 transition-colors">
-                      <td className="px-10 py-8">
+                      <td className="px-6 md:px-10 py-6 md:py-8">
                          <div className="min-w-0">
-                            <h4 className="font-bold text-gray-900 text-sm truncate max-w-[300px] leading-tight mb-1 tracking-tight">{enq.subject || 'New Inquiry'}</h4>
-                            <p className="text-xs font-semibold text-gray-400 line-clamp-2 max-w-[350px] leading-relaxed mb-3">{enq.message}</p>
+                            <h4 className="font-bold text-gray-900 text-xs md:text-sm truncate max-w-[200px] md:max-w-[300px] leading-tight mb-1 tracking-tight">{enq.subject || 'New Inquiry'}</h4>
+                            <p className="text-[10px] md:text-xs font-semibold text-gray-400 line-clamp-2 max-w-[250px] md:max-w-[350px] leading-relaxed mb-3">{enq.message}</p>
                             <div className="flex items-center gap-3">
-                               <span className="text-xs font-bold text-gray-300 tracking-tight">Received: {enq.createdAt?.toDate ? new Date(enq.createdAt.toDate()).toLocaleDateString() : 'Today'}</span>
+                               <span className="text-[10px] md:text-xs font-bold text-gray-300 tracking-tight">Received: {enq.createdAt?.toDate ? new Date(enq.createdAt.toDate()).toLocaleDateString() : 'Today'}</span>
                                {enq.propertyId && (
-                                 <div className="flex items-center gap-1 px-2 py-0.5 bg-gray-50 rounded text-xs font-bold text-primary border border-primary/10">
+                                 <div className="flex items-center gap-1 px-1.5 py-0.5 bg-gray-50 rounded text-[9px] md:text-xs font-bold text-primary border border-primary/10">
                                     <Building2 size={10} /> Linked Prop
                                  </div>
                                )}
                             </div>
                          </div>
                       </td>
-                      <td className="px-6 py-8">
+                      <td className="px-4 md:px-6 py-6 md:py-8">
                          <div className="flex flex-col gap-1.5">
                             <div className="flex items-center gap-2">
-                               <div className="w-6 h-6 bg-gray-100 rounded-lg flex items-center justify-center text-gray-400 text-xs font-bold">
+                               <div className="w-5 h-5 md:w-6 md:h-6 bg-gray-100 rounded-md md:rounded-lg flex items-center justify-center text-gray-400 text-[10px] md:text-xs font-bold">
                                   {enq.userName?.charAt(0) || 'U'}
                                </div>
-                               <span className="text-xs font-bold text-gray-700">{enq.userName || 'Anonymous'}</span>
+                               <span className="text-[10px] md:text-xs font-bold text-gray-700 truncate max-w-[120px]">{enq.userName || 'Anonymous'}</span>
                             </div>
-                            <div className="flex items-center gap-2 text-xs font-bold text-gray-400 tracking-tight">
-                               <Mail size={12} /> {enq.userEmail}
+                            <div className="flex items-center gap-2 text-[10px] md:text-xs font-bold text-gray-400 tracking-tight truncate max-w-[150px]">
+                               <Mail size={12} className="shrink-0" /> <span className="truncate">{enq.userEmail}</span>
                             </div>
                          </div>
                       </td>
-                      <td className="px-6 py-8 text-center">
+                      <td className="px-4 md:px-6 py-6 md:py-8 text-center">
                          <div className="flex flex-col gap-1 items-center">
-                            <span className="px-3 py-1 bg-gray-50 rounded-lg text-xs font-bold text-gray-500 tracking-tight border border-gray-100">{enq.type || 'Support'}</span>
-                            <span className="text-xs font-bold text-gray-300 tracking-tight">{enq.source || 'Web Form'}</span>
+                            <span className="px-2 md:px-3 py-1 bg-gray-50 rounded-lg text-[10px] md:text-xs font-bold text-gray-500 tracking-tight border border-gray-100">{enq.type || 'Support'}</span>
+                            <span className="text-[10px] md:text-xs font-bold text-gray-300 tracking-tight">{enq.source || 'Web Form'}</span>
                          </div>
                       </td>
-                      <td className="px-6 py-8">
+                      <td className="px-4 md:px-6 py-6 md:py-8">
                          <div className="flex justify-center">
                             <div className={cn(
-                               "px-3 py-1 rounded-lg text-xs font-bold tracking-tight border capitalize",
+                               "px-2 md:px-3 py-1 rounded-lg text-[10px] md:text-xs font-bold tracking-tight border capitalize",
                                enq.priority === 'high' ? "bg-red-50 border-red-100 text-red-500" :
                                enq.priority === 'medium' ? "bg-amber-50 border-amber-100 text-amber-600" :
                                "bg-blue-50 border-blue-100 text-blue-500"
@@ -207,51 +206,51 @@ export default function AdminEnquiriesClient() {
                             </div>
                          </div>
                       </td>
-                      <td className="px-6 py-8">
+                      <td className="px-4 md:px-6 py-6 md:py-8">
                          <div className={cn(
-                           "inline-flex items-center gap-1.5 px-4 py-1.5 rounded-xl text-xs font-bold tracking-tight border shadow-sm capitalize",
+                           "inline-flex items-center gap-1 px-3 md:px-4 py-1 md:py-1.5 rounded-lg md:rounded-xl text-[10px] md:text-xs font-bold tracking-tight border shadow-sm capitalize",
                            enq.status === 'resolved' ? "bg-green-50 border-green-100 text-green-600" :
                            enq.status === 'responded' ? "bg-orange-50 border-orange-100 text-orange-600" :
                            enq.status === 'viewed' ? "bg-blue-50 border-blue-100 text-blue-600" :
                            enq.status === 'open' ? "bg-amber-50 border-amber-100 text-amber-600" :
                            "bg-gray-50 border-gray-100 text-gray-400"
                          )}>
-                            {enq.status}
+                            {enq.status || 'open'}
                          </div>
                       </td>
-                      <td className="px-10 py-8 text-right">
-                         <div className="flex items-center justify-end gap-2">
+                      <td className="px-6 md:px-10 py-6 md:py-8 text-right">
+                         <div className="flex items-center justify-end gap-1.5 md:gap-2">
                             {(enq.status === 'open' || !enq.status) && (
                               <button 
                                 onClick={() => handleStatusUpdate(enq.id, 'viewed')}
-                                className="px-4 py-2 bg-blue-50 text-blue-600 rounded-xl font-black text-[9px] uppercase tracking-widest hover:bg-blue-600 hover:text-white transition-all shadow-sm flex items-center gap-2"
+                                className="h-8 md:h-10 px-3 md:px-4 bg-blue-50 text-blue-600 rounded-lg md:rounded-xl font-black text-[8px] md:text-[9px] uppercase tracking-widest hover:bg-blue-600 hover:text-white transition-all shadow-sm flex items-center gap-1.5 md:gap-2"
                                 title="Mark Viewed"
                               >
-                                 <Eye size={14} /> Viewed
+                                 <Eye size={14} className="shrink-0" /> <span className="hidden sm:inline">Viewed</span>
                               </button>
                             )}
                             {(enq.status === 'viewed' || enq.status === 'open' || !enq.status) && (
                               <button 
                                 onClick={() => handleStatusUpdate(enq.id, 'responded')}
-                                className="px-4 py-2 bg-orange-50 text-orange-600 rounded-xl font-black text-[9px] uppercase tracking-widest hover:bg-orange-600 hover:text-white transition-all shadow-sm flex items-center gap-2"
+                                className="h-8 md:h-10 px-3 md:px-4 bg-orange-50 text-orange-600 rounded-lg md:rounded-xl font-black text-[8px] md:text-[9px] uppercase tracking-widest hover:bg-orange-600 hover:text-white transition-all shadow-sm flex items-center gap-1.5 md:gap-2"
                                 title="Mark Responded"
                               >
-                                 <UserCheck size={14} /> Responded
+                                 <UserCheck size={14} className="shrink-0" /> <span className="hidden sm:inline">Responded</span>
                               </button>
                             )}
                             {enq.status !== 'resolved' && (
                               <button 
                                 onClick={() => handleStatusUpdate(enq.id, 'resolved')}
-                                className="px-4 py-2 bg-green-50 text-green-600 rounded-xl font-black text-[9px] uppercase tracking-widest hover:bg-green-600 hover:text-white transition-all shadow-sm flex items-center gap-2"
+                                className="h-8 md:h-10 px-3 md:px-4 bg-green-50 text-green-600 rounded-lg md:rounded-xl font-black text-[8px] md:text-[9px] uppercase tracking-widest hover:bg-green-600 hover:text-white transition-all shadow-sm flex items-center gap-1.5 md:gap-2"
                                 title="Mark Resolved"
                               >
-                                 <CheckCircle2 size={14} /> Resolve
+                                 <CheckCircle2 size={14} className="shrink-0" /> <span className="hidden sm:inline">Resolve</span>
                               </button>
                             )}
-                            <button className="p-3 bg-white border border-gray-100 text-gray-400 hover:text-primary hover:border-primary/20 rounded-xl shadow-sm transition-all">
-                               <Send size={18} />
-                            </button>
-                         </div>
+                             <button className="p-2 md:p-3 bg-white border border-gray-100 text-gray-400 hover:text-primary hover:border-primary/20 rounded-lg md:rounded-xl shadow-sm transition-all">
+                                <Send size={18} />
+                             </button>
+                          </div>
                       </td>
                    </tr>
                  )) : (

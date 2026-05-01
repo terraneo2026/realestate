@@ -7,6 +7,7 @@ import { auth, firestore } from "@/lib/firebase";
 import { doc, getDoc, collection, query, where, getDocs, limit, orderBy } from "firebase/firestore";
 import StatsCard from "@/components/StatsCard";
 import DashboardLayout from "@/components/DashboardLayout";
+import WorkflowTimeline from "@/components/OwnerWorkflow/WorkflowTimeline";
 import { 
   Plus, 
   Home, 
@@ -21,7 +22,10 @@ import {
   ArrowUpRight,
   BarChart3,
   Users,
-  Wallet
+  Wallet,
+  ShieldCheck,
+  MapPin,
+  FileText
 } from "lucide-react";
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
@@ -303,6 +307,19 @@ export default function OwnerDashboardClient() {
         {/* Sidebar Actions */}
         <div className="space-y-10">
           
+          {/* Workflow Timeline */}
+          {recentProperties.length > 0 && (
+            <WorkflowTimeline 
+              steps={[
+                { id: '1', label: 'KYC Verification', status: 'completed', icon: ShieldCheck, date: 'Apr 25' },
+                { id: '2', label: 'Property Audit 1', status: 'completed', icon: MapPin, date: 'Apr 28' },
+                { id: '3', label: 'Property Audit 2', status: 'current', icon: MapPin },
+                { id: '4', label: 'Admin Approval', status: 'pending', icon: CheckCircle2 },
+                { id: '5', label: 'Agreement & E-Sign', status: 'pending', icon: FileText },
+              ]}
+            />
+          )}
+
           {/* Quick Actions Card */}
           <div className="bg-white rounded-[2.5rem] shadow-2xl shadow-gray-200/50 border border-gray-100 p-10">
             <h2 className="text-2xl font-black text-gray-900 tracking-tight mb-8">Quick Actions</h2>

@@ -5,6 +5,7 @@ import { Button } from "@/components/ui";
 import { Navbar, Footer, PageHero } from "@/components/layout";
 import { firestore } from "@/lib/firebase";
 import { collection, addDoc } from "firebase/firestore";
+import { sendNotification } from "@/lib/notifications";
 
 import { Facebook, Instagram, Twitter, Linkedin, ChevronDown, ChevronUp, Phone, Mail, MapPin } from "lucide-react";
 
@@ -32,7 +33,7 @@ export default function ContactClient() {
     setLoading(true);
     try {
       // Save to Firestore 'enquiries' collection (unified with admin panel)
-      await addDoc(collection(firestore, "enquiries"), {
+      const enquiryRef = await addDoc(collection(firestore, "enquiries"), {
         userName: formData.name,
         userEmail: formData.email,
         phone: formData.phone,
@@ -43,6 +44,16 @@ export default function ContactClient() {
         status: 'open',
         priority: 'medium',
         createdAt: new Date().toISOString()
+      });
+      
+      // Send notification to Admin
+      await sendNotification({
+        user_id: null,
+        role: 'admin',
+        type: 'message',
+        title: 'New Enquiry Received',
+        message: `New enquiry from ${formData.name} regarding "General Inquiry".`,
+        metadata: { enquiryId: enquiryRef.id }
       });
       
       setSubmitted(true);

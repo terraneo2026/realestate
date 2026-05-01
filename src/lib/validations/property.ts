@@ -12,25 +12,28 @@ export const propertySchema = z.object({
   ownerName: z.string().min(3, "Owner name must be at least 3 characters"),
   ownerMobile: z.string().regex(/^\d{10}$/, "Invalid contact number (10 digits)"),
   title: z.string().min(3, "Title must be at least 3 characters").max(100, "Title cannot exceed 100 characters"),
-  budget: z.coerce.number().positive("Budget must be a positive number"),
+  propertyReferenceId: z.string().min(3, "Property ID must be at least 3 characters").optional(),
+  projectReferenceId: z.string().optional(),
+  budget: z.number().positive("Budget must be a positive number"),
   type: z.enum(["rent", "lease"]),
   
   // Possession Logic
   possessionType: z.enum(["1m", "3m", "6m", "custom"]),
   possessionDate: z.string().optional(),
-  duration: z.coerce.number().optional(),
+  duration: z.number().optional(),
 
   // Property Configuration
   furnishing: z.enum(["furnished", "semi-furnished", "unfurnished"]),
-  floors: z.coerce.number().min(1, "Number of floors is required"),
-  totalBedrooms: z.coerce.number().min(0).default(0),
-  bedroomsWithAttachedBath: z.coerce.number().min(0).default(0),
-  bedroomsWithoutAttachedBath: z.coerce.number().min(0).default(0),
-  kitchens: z.coerce.number().min(0).default(1),
-  halls: z.coerce.number().min(0).default(1),
-  commonBathrooms: z.coerce.number().min(0).default(0),
-  poojaRooms: z.coerce.number().min(0).default(0),
-  drawingRooms: z.coerce.number().min(0).default(0),
+  floors: z.number().min(1, "Number of floors is required"),
+  size_sqft: z.number().min(1, "Total area is required"),
+  totalBedrooms: z.number().min(0),
+  bedroomsWithAttachedBath: z.number().min(0),
+  bedroomsWithoutAttachedBath: z.number().min(0),
+  kitchens: z.number().min(0),
+  halls: z.number().min(0),
+  commonBathrooms: z.number().min(0),
+  poojaRooms: z.number().min(0),
+  drawingRooms: z.number().min(0),
   customParameters: z.array(z.object({
     label: z.string().min(1),
     value: z.string().min(1)
@@ -73,23 +76,23 @@ export const propertySchema = z.object({
 
   // Project Level Details
   projectDetails: z.object({
-    park: z.boolean().default(false),
-    playArea: z.boolean().default(false),
-    communityHall: z.boolean().default(false),
-    gym: z.boolean().default(false),
-    security: z.boolean().default(false),
-    lift: z.boolean().default(false),
-    powerBackup: z.boolean().default(false),
-    waterSupply: z.boolean().default(false),
-    totalUnits: z.coerce.number().optional(),
-    buildYear: z.coerce.number().optional(),
+    park: z.boolean(),
+    playArea: z.boolean(),
+    communityHall: z.boolean(),
+    gym: z.boolean(),
+    security: z.boolean(),
+    lift: z.boolean(),
+    powerBackup: z.boolean(),
+    waterSupply: z.boolean(),
+    totalUnits: z.number().optional(),
+    buildYear: z.number().optional(),
   }),
 
   description: z.string().min(50, "Description must be at least 50 characters").max(2000, "Description cannot exceed 2000 characters"),
   
   images: z.array(z.string()).min(4, "Minimum 4 images are mandatory"),
   coverImage: z.string().min(1, "Please select a cover image"),
-  amenities: z.array(z.string()).default([]),
+  amenities: z.array(z.string()),
 });
 
 export type PropertyFormData = z.infer<typeof propertySchema>;

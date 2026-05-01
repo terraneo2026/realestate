@@ -1,0 +1,25 @@
+{
+  "cookies": [
+    {
+      "name": "auth-token",
+      "value": "eyJhbGciOiJIUzI1NiJ9.eyJpZCI6ImM0QjZObXd6WERSR1dGSDNTVThxOThSMDZ4SjIiLCJlbWFpbCI6ImFkbWluQHJlbG9jYXRlLmNvbSIsInJvbGUiOiJhZG1pbiIsImlhdCI6MTc3NzYxODU4MiwiZXhwIjoxNzc4MjIzMzgyfQ.K8T_8bcovsPHkpR5WtN40DqEz07xBrQS_w-EeHqMa3k",
+      "domain": "localhost",
+      "path": "/",
+      "expires": 1778223382.776869,
+      "httpOnly": true,
+      "secure": false,
+      "sameSite": "Lax"
+    }
+  ],
+  "origins": [
+    {
+      "origin": "http://localhost:3000",
+      "localStorage": [
+        {
+          "name": "userProfile",
+          "value": "{\"fullName\":\"System Admin\",\"email\":\"admin@relocate.com\",\"role\":\"admin\",\"id\":\"c4B6NmwzXDRGWFH3SU8q98R06xJ2\"}"
+        }
+      ]
+    }
+  ]
+}

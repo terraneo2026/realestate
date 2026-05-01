@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { Suspense } from "react";
 import DashboardLayout from "@/components/DashboardLayout";
 import { toast } from "sonner";
 import { clsx, type ClassValue } from "clsx";
@@ -30,6 +31,20 @@ function cn(...inputs: ClassValue[]) {
 }
 
 export default function OwnerMessagesPage() {
+  return (
+    <Suspense fallback={
+      <DashboardLayout userRole="owner">
+        <div className="flex items-center justify-center h-[600px]">
+          <Loader2 className="animate-spin text-primary" size={48} />
+        </div>
+      </DashboardLayout>
+    }>
+      <OwnerMessagesContent />
+    </Suspense>
+  );
+}
+
+function OwnerMessagesContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const pathname = usePathname();

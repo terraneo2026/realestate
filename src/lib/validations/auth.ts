@@ -26,12 +26,25 @@ export const registerSchema = z.object({
   confirmPassword: z.string().min(1, "Please confirm your password"),
   role: z.enum(["tenant", "agent", "owner"]),
   // Optional fields depending on role
+  aadhaarNumber: z.string().regex(/^\d{12}$/, "Enter a valid 12-digit Aadhaar number").optional().or(z.literal("")),
   agencyName: z.string().optional(),
   licenseNumber: z.string().optional(),
-  address: z.string().min(10, "Address must be at least 10 characters").optional().or(z.literal("")),
+  address: z.string().min(5, "Address must be at least 5 characters").optional().or(z.literal("")),
 }).refine((data) => data.password === data.confirmPassword, {
   message: "Passwords do not match",
   path: ["confirmPassword"],
 });
 
 export type RegisterInput = z.infer<typeof registerSchema>;
+
+export const loginSchema = z.object({
+  email: z
+    .string()
+    .min(1, "Email is required")
+    .email("Enter a valid email address"),
+  password: z
+    .string()
+    .min(1, "Password is required"),
+});
+
+export type LoginInput = z.infer<typeof loginSchema>;

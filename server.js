@@ -15,6 +15,6 @@ app.prepare().then(() => {
   createServer((req, res) => {
     handle(req, res);
   }).listen(PORT, () => {
-    console.log(`Server running on http://localhost:${PORT}`);
+    console.log(`Server running on port ${PORT}`);
   });
 });

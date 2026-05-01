@@ -1,5 +1,6 @@
 import { Metadata } from "next";
 import RegisterClient from "./RegisterClient";
+import { Suspense } from "react";
 
 export const metadata: Metadata = {
   title: "Register - Relocate",
@@ -24,7 +25,16 @@ export default async function RegisterPage({ params }: RegisterPageProps) {
       </div>
 
       <div className="w-full max-w-5xl relative z-10 transition-all duration-500">
-        <RegisterClient locale={locale} />
+        <Suspense fallback={
+          <div className="w-full h-[600px] bg-white rounded-[3rem] shadow-2xl flex items-center justify-center">
+            <div className="flex flex-col items-center gap-4">
+              <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+              <p className="text-xs font-black text-gray-400 uppercase tracking-widest">Loading Registration...</p>
+            </div>
+          </div>
+        }>
+          <RegisterClient locale={locale} />
+        </Suspense>
       </div>
     </div>
   );

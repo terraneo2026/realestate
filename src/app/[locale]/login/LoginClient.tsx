@@ -13,6 +13,10 @@ function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { loginSchema, type LoginInput } from "@/lib/validations/auth";
+
 interface LoginClientProps {
   locale: string;
   role?: 'tenant' | 'owner' | 'agent';
@@ -33,24 +37,24 @@ export default function LoginClient({ locale, role }: LoginClientProps) {
     agent: "Track your listings and leads"
   };
 
-  const [formData, setFormData] = useState({
-    email: "",
-    password: "",
-  });
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value,
-    });
-    if (serverError) setServerError(null);
-  };
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isValid },
+  } = useForm<LoginInput>({
+    resolver: zodResolver(loginSchema),
+    defaultValues: {
+      email: "",
+      password: "",
+    },
+    mode: "onChange",
+  });
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const onSubmit = async (data: LoginInput) => {
     setLoading(true);
     setServerError(null);
 
@@ -58,7 +62,7 @@ export default function LoginClient({ locale, role }: LoginClientProps) {
       const response = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(data),
       });
 
       const result = await response.json();
@@ -161,35 +165,40 @@ export default function LoginClient({ locale, role }: LoginClientProps) {
           </div>
         </div>
  
-        <form className="space-y-5" onSubmit={handleSubmit}>
+        <form className="space-y-5" onSubmit={handleSubmit(onSubmit)}>
           <div className="space-y-4">
             <div className="group">
               <label className="text-[9px] font-black text-gray-400 tracking-[0.2em] ml-2 mb-1.5 block group-focus-within:text-primary transition-colors uppercase">Email</label>
               <div className="relative">
-                <Mail size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-primary transition-colors" />
+                <Mail size={16} className={cn("absolute left-4 top-1/2 -translate-y-1/2 transition-colors", errors.email ? "text-red-400" : "text-gray-400 group-focus-within:text-primary")} />
                 <input
-                  name="email"
+                  {...register("email")}
                   type="email"
-                  required
-                  className="w-full pl-11 pr-4 py-3.5 border-2 border-gray-100 text-gray-900 rounded-2xl focus:outline-none focus:ring-4 focus:ring-primary/10 focus:border-primary transition-all font-bold text-sm bg-gray-50/50 hover:bg-white"
+                  className={cn(
+                    "w-full pl-11 pr-4 py-3.5 border-2 rounded-2xl focus:outline-none focus:ring-4 transition-all font-bold text-sm bg-gray-50/50 hover:bg-white",
+                    errors.email 
+                      ? "border-red-100 focus:border-red-400 focus:ring-red-400/10" 
+                      : "border-gray-100 focus:border-primary focus:ring-primary/10"
+                  )}
                   placeholder="name@example.com"
-                  value={formData.email}
-                  onChange={handleChange}
                 />
               </div>
+              {errors.email && <p className="text-[10px] font-bold text-red-500 ml-2 mt-1">{errors.email.message}</p>}
             </div>
             <div className="group">
               <label className="text-[9px] font-black text-gray-400 tracking-[0.2em] ml-2 mb-1.5 block group-focus-within:text-primary transition-colors uppercase">Password</label>
               <div className="relative">
-                <Lock size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-primary transition-colors" />
+                <Lock size={16} className={cn("absolute left-4 top-1/2 -translate-y-1/2 transition-colors", errors.password ? "text-red-400" : "text-gray-400 group-focus-within:text-primary")} />
                 <input
-                  name="password"
+                  {...register("password")}
                   type={showPassword ? "text" : "password"}
-                  required
-                  className="w-full pl-11 pr-12 py-3.5 border-2 border-gray-100 text-gray-900 rounded-2xl focus:outline-none focus:ring-4 focus:ring-primary/10 focus:border-primary transition-all font-bold text-sm bg-gray-50/50 hover:bg-white"
+                  className={cn(
+                    "w-full pl-11 pr-12 py-3.5 border-2 rounded-2xl focus:outline-none focus:ring-4 transition-all font-bold text-sm bg-gray-50/50 hover:bg-white",
+                    errors.password 
+                      ? "border-red-100 focus:border-red-400 focus:ring-red-400/10" 
+                      : "border-gray-100 focus:border-primary focus:ring-primary/10"
+                  )}
                   placeholder="••••••••"
-                  value={formData.password}
-                  onChange={handleChange}
                 />
                 <button
                   type="button"
@@ -199,6 +208,7 @@ export default function LoginClient({ locale, role }: LoginClientProps) {
                   {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
               </div>
+              {errors.password && <p className="text-[10px] font-bold text-red-500 ml-2 mt-1">{errors.password.message}</p>}
             </div>
           </div>
  
@@ -206,7 +216,6 @@ export default function LoginClient({ locale, role }: LoginClientProps) {
             <div className="flex items-center">
               <input
                 id="remember-me"
-                name="remember-me"
                 type="checkbox"
                 className="h-4 w-4 text-primary focus:ring-primary border-gray-200 rounded transition-all cursor-pointer"
               />
@@ -229,8 +238,11 @@ export default function LoginClient({ locale, role }: LoginClientProps) {
  
           <button
             type="submit"
-            disabled={loading}
-            className="group relative w-full flex justify-center items-center py-4 px-4 border border-transparent text-sm font-black rounded-2xl text-white primaryBg hover:shadow-xl hover:shadow-primary/30 focus:outline-none focus:ring-4 focus:ring-primary/20 transition-all active:scale-[0.98] disabled:opacity-70 tracking-[0.2em]"
+            disabled={loading || !isValid}
+            className={cn(
+              "group relative w-full flex justify-center items-center py-4 px-4 border border-transparent text-sm font-black rounded-2xl text-white transition-all active:scale-[0.98] disabled:opacity-70 tracking-[0.2em]",
+              isValid ? "primaryBg hover:shadow-xl hover:shadow-primary/30" : "bg-gray-200 cursor-not-allowed"
+            )}
           >
             {loading ? (
               <Loader2 className="w-5 h-5 animate-spin" />

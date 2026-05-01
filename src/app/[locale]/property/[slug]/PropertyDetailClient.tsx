@@ -18,6 +18,9 @@ import { toast } from "sonner";
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 
+import { sendNotification } from "@/lib/notifications";
+import { lockPropertyRent } from "@/lib/safety-engine";
+
 function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
@@ -58,6 +61,7 @@ export default function PropertyDetailClient({ slug, locale }: { slug: string, l
   const [isSaved, setIsSaved] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
   const [bookingLoading, setBookingLoading] = useState(false);
+  const [currentTokenAmount, setCurrentTokenAmount] = useState(500);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
@@ -65,6 +69,25 @@ export default function PropertyDetailClient({ slug, locale }: { slug: string, l
     });
     return () => unsubscribe();
   }, []);
+
+  useEffect(() => {
+    const fetchTokenConfig = async () => {
+      if (!property?.category) return;
+      try {
+        const categoryMap: any = { 'Budget': 'Budget', 'Mid Range': 'Mid Range', 'Premium': 'Premium', 'Luxury': 'Luxury' };
+        const categoryName = categoryMap[property.category] || 'Budget';
+        const res = await fetch(`/api/admin/configuration/tokens`);
+        const result = await res.json();
+        if (result.success) {
+          const config = result.data.find((c: any) => c.category === categoryName);
+          if (config) setCurrentTokenAmount(config.tokenAmount);
+        }
+      } catch (e) {
+        console.error("Error fetching token config:", e);
+      }
+    };
+    fetchTokenConfig();
+  }, [property]);
 
   useEffect(() => {
     const fetchPropertyData = async () => {
@@ -146,8 +169,26 @@ export default function PropertyDetailClient({ slug, locale }: { slug: string, l
 
     setBookingLoading(true);
     try {
-      // 1. Simulate Token Payment Flow
-      toast.info(`Initializing token payment of ₹${TOKEN_AMOUNT}...`);
+      // 0. Check for duplicate visit requests
+      const duplicateQuery = query(
+        collection(firestore, "bookings"),
+        where("userId", "==", user.uid),
+        where("propertyId", "==", property.id),
+        where("status", "==", BOOKING_STATUS.VISIT_REQUESTED)
+      );
+      const duplicateSnap = await getDocs(duplicateQuery);
+      if (!duplicateSnap.empty) {
+        toast.error("You already have an active visit request for this property.");
+        return;
+      }
+
+      // 1. Fetch Latest Commission Config (Tokens are already in state)
+      const commissionRes = await fetch(`/api/admin/configuration/commissions`);
+      const commissionData = await commissionRes.json();
+      const tenantCommission = commissionData.data?.find((c: any) => c.side === 'tenant' && c.active);
+
+      // 2. Simulate Token Payment Flow
+      toast.info(`Initializing token payment of ₹${currentTokenAmount}...`);
       
       // Simulating Razorpay popup and success
       const paymentSuccess = await new Promise((resolve) => {
@@ -162,8 +203,17 @@ export default function PropertyDetailClient({ slug, locale }: { slug: string, l
         return;
       }
 
-      // 2. Create booking request with new status
-      await addDoc(collection(firestore, "bookings"), {
+      // 3. Create Immutable Configuration Snapshot
+      const configSnapshot = {
+        token_amount: currentTokenAmount,
+        commission_type: tenantCommission?.type || 'percentage',
+        commission_value: tenantCommission?.value || 0,
+        applied_at: new Date().toISOString(),
+        version: '1.0'
+      };
+
+      // 4. Create booking request with new status and snapshot
+      const bookingRef = await addDoc(collection(firestore, "bookings"), {
         userId: user.uid,
         userName: user.displayName || "User",
         userEmail: user.email,
@@ -176,8 +226,47 @@ export default function PropertyDetailClient({ slug, locale }: { slug: string, l
         bookingSlot: slot,
         status: BOOKING_STATUS.VISIT_REQUESTED,
         tokenPaid: true,
-        tokenAmount: TOKEN_AMOUNT,
+        tokenAmount: currentTokenAmount,
+        configuration_snapshot: configSnapshot, // CRITICAL: Immutable snapshot
         createdAt: serverTimestamp(),
+      });
+
+      // 5. Trigger Rent Locking (Automated Enforcement)
+      if (!property.rentLocked) {
+        await lockPropertyRent(property.id, property.price, user.uid);
+      }
+
+      // 3. Send notifications
+      // To Owner
+      if (property.ownerId) {
+        await sendNotification({
+          user_id: property.ownerId,
+          role: 'owner',
+          type: 'booking',
+          title: 'New Visit Request!',
+          message: `A new visit has been requested for your property "${property.title}" by ${user.displayName || "a tenant"}.`,
+          metadata: { bookingId: bookingRef.id, propertyId: property.id }
+        });
+      }
+
+      // To Tenant
+      await sendNotification({
+        user_id: user.uid,
+        role: 'tenant',
+        type: 'booking',
+        title: 'Booking Request Sent',
+        message: `Your visit request for "${property.title}" has been sent. The owner will review it soon.`,
+        metadata: { bookingId: bookingRef.id, propertyId: property.id }
+      });
+
+      // To Admin
+      await sendNotification({
+        user_id: null,
+        role: 'admin',
+        type: 'booking',
+        title: 'New Booking Request',
+        message: `New booking request for "${property.title}" (ID: ${property.id}). Token ₹${TOKEN_AMOUNT} paid.`,
+        metadata: { bookingId: bookingRef.id, propertyId: property.id }
       });
 
       toast.success("Visit requested successfully! Token payment confirmed.");
@@ -304,6 +393,7 @@ export default function PropertyDetailClient({ slug, locale }: { slug: string, l
                 propertyId={property.id} 
                 onBookingSubmit={handleBookingSubmit}
                 loading={bookingLoading}
+                tokenAmount={currentTokenAmount}
               />
 
               {/* Action Buttons */}

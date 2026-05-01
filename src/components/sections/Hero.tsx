@@ -60,7 +60,7 @@ export function HeroSection() {
         </div>
       </div>
 
-      <section className="relative w-full h-[600px] sm:h-[700px] md:h-[750px] lg:h-[850px] overflow-hidden">
+      <section className="relative w-full h-[500px] sm:h-[600px] md:h-[650px] lg:h-[700px] overflow-hidden">
         {/* Slider Background */}
         <div className="absolute inset-0">
           {HERO_SLIDES.map((slide, index) => (
@@ -75,7 +75,7 @@ export function HeroSection() {
                 alt={slide.headline}
                 className="w-full h-full object-cover"
               />
-              <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-black/20 to-transparent"></div>
+              <div className="absolute inset-0 bg-white/40"></div>
             </div>
           ))}
 
@@ -84,13 +84,13 @@ export function HeroSection() {
             onClick={() =>
               setCurrentSlide((prev) => (prev - 1 + HERO_SLIDES.length) % HERO_SLIDES.length)
             }
-            className="absolute left-4 top-1/2 -translate-y-1/2 z-20 bg-white/20 hover:bg-white/40 text-white w-12 h-12 flex items-center justify-center rounded-full transition backdrop-blur-md border border-white/20"
+            className="absolute left-4 top-1/2 -translate-y-1/2 z-20 bg-gray-900/10 hover:bg-primary/20 text-gray-900 w-12 h-12 flex items-center justify-center rounded-full transition backdrop-blur-md border border-gray-900/10"
           >
             <span className="text-3xl font-light">‹</span>
           </button>
           <button
             onClick={() => setCurrentSlide((prev) => (prev + 1) % HERO_SLIDES.length)}
-            className="absolute right-4 top-1/2 -translate-y-1/2 z-20 bg-white/20 hover:bg-white/40 text-white w-12 h-12 flex items-center justify-center rounded-full transition backdrop-blur-md border border-white/20"
+            className="absolute right-4 top-1/2 -translate-y-1/2 z-20 bg-gray-900/10 hover:bg-primary/20 text-gray-900 w-12 h-12 flex items-center justify-center rounded-full transition backdrop-blur-md border border-gray-900/10"
           >
             <span className="text-3xl font-light">›</span>
           </button>
@@ -100,16 +100,16 @@ export function HeroSection() {
             <div className="max-w-7xl mx-auto px-6 sm:px-12 lg:px-16 w-full">
               <div className="max-w-3xl text-left pt-12 md:pt-20">
                 <div className="flex items-center gap-3 mb-6 animate-fade-in-down">
-                  <div className="h-px w-12 bg-yellow-400"></div>
-                  <p className="text-sm md:text-base font-black text-yellow-400 tracking-[0.3em] uppercase drop-shadow-md">
+                  <div className="h-px w-12 bg-primary"></div>
+                  <p className="text-sm md:text-base font-black text-primary tracking-[0.3em] uppercase drop-shadow-md">
                     {currentSlideData.title}
                   </p>
                 </div>
-                <h1 className="text-6xl sm:text-7xl md:text-8xl lg:text-9xl font-black leading-[0.9] mb-8 animate-fade-in tracking-tighter text-white">
+                <h1 className="text-6xl sm:text-7xl md:text-8xl lg:text-9xl font-black leading-[0.9] mb-8 animate-fade-in tracking-tighter text-gray-900">
                   <span className="block drop-shadow-2xl">{currentSlideData.headline}</span>
-                  <span className="text-yellow-400 block mt-2 drop-shadow-2xl">For {currentSlideData.highlight}</span>
+                  <span className="text-primary block mt-2 drop-shadow-2xl">For {currentSlideData.highlight}</span>
                 </h1>
-                <p className="text-lg sm:text-xl md:text-2xl leading-relaxed text-white/90 max-w-2xl mb-12 line-clamp-3 font-medium animate-fade-in drop-shadow-xl">
+                <p className="text-lg sm:text-xl md:text-2xl leading-relaxed text-gray-600 max-w-2xl mb-12 line-clamp-3 font-medium animate-fade-in drop-shadow-xl">
                   {currentSlideData.description}
                 </p>
               </div>
@@ -124,8 +124,8 @@ export function HeroSection() {
                 onClick={() => setCurrentSlide(index)}
                 className={`transition-all duration-500 ${
                   index === currentSlide
-                    ? 'bg-white w-12 md:w-20 h-2.5 rounded-full shadow-xl'
-                    : 'bg-white/30 hover:bg-white/50 w-2.5 h-2.5 rounded-full'
+                    ? 'bg-primary w-12 md:w-20 h-2.5 rounded-full shadow-xl'
+                    : 'bg-gray-900/20 hover:bg-primary/30 w-2.5 h-2.5 rounded-full'
                 }`}
                 aria-label={`Go to slide ${index + 1}`}
               />

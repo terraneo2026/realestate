@@ -28,9 +28,13 @@ import { BOOKING_STATUS, PROPERTY_STATUS } from "@/lib/constants";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import DashboardLayout from "@/components/DashboardLayout";
+import DigitalAgreementModal from "@/components/modals/DigitalAgreementModal";
 import { toast } from "sonner";
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
+
+import { sendNotification } from "@/lib/notifications";
+import { transitionBookingState } from "@/lib/booking-service";
 
 function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -44,6 +48,8 @@ export default function OwnerBookingsPage() {
   const [bookings, setBookings] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [filterStatus, setFilterStatus] = useState("all");
+  const [isAgreementOpen, setIsAgreementOpen] = useState(false);
+  const [activeBooking, setActiveBooking] = useState<any>(null);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
@@ -82,31 +88,26 @@ export default function OwnerBookingsPage() {
     }
   };
 
-  const handleStatusUpdate = async (bookingId: string, newStatus: string, propertyId?: string) => {
+  const handleStatusUpdate = async (bookingId: string, newStatus: string, propertyId?: string, signatureUrl?: string) => {
     try {
-      const bookingRef = doc(firestore, "bookings", bookingId);
-      await updateDoc(bookingRef, { 
-        status: newStatus,
-        updatedAt: serverTimestamp()
-      });
-      
-      // Handle Property Status Transitions
-      if (propertyId) {
-        const propertyRef = doc(firestore, "properties", propertyId);
-        if (newStatus === BOOKING_STATUS.VISIT_BOOKED) {
-          // Hide property temporarily when visit is confirmed
-          await updateDoc(propertyRef, { status: PROPERTY_STATUS.ON_HOLD });
-          toast.info("Property hidden temporarily for confirmed visit");
-        } else if (newStatus === BOOKING_STATUS.BOOKED) {
-          // Final booking - mark as rented
-          await updateDoc(propertyRef, { status: PROPERTY_STATUS.RENTED });
-          toast.success("Property marked as Rented!");
-        } else if (newStatus === BOOKING_STATUS.REJECTED || newStatus === BOOKING_STATUS.CANCELLED) {
-          // Return to available if rejected or cancelled
-          await updateDoc(propertyRef, { status: PROPERTY_STATUS.ACTIVE });
-          toast.info("Property is now visible to others again");
-        }
+      const booking = bookings.find(b => b.id === bookingId);
+      if (!booking) return;
+
+      const metadata: any = {};
+      if (signatureUrl) {
+        metadata.signatureUrl = signatureUrl;
+        metadata.signedAt = serverTimestamp();
       }
+
+      await transitionBookingState({
+        bookingId,
+        newStatus,
+        propertyId,
+        userId: booking.userId,
+        ownerId: booking.ownerId,
+        propertyTitle: booking.propertyTitle,
+        metadata
+      });
 
       setBookings(prev => prev.map(b => b.id === bookingId ? { ...b, status: newStatus } : b));
       toast.success(`Booking status updated to: ${newStatus.replace('_', ' ')}`);
@@ -281,7 +282,10 @@ export default function OwnerBookingsPage() {
                   {/* Step 4: Agreed -> Agreement */}
                   {booking.status === BOOKING_STATUS.AGREED && (
                     <button 
-                      onClick={() => handleStatusUpdate(booking.id, BOOKING_STATUS.AGREEMENT)}
+                      onClick={() => {
+                        setActiveBooking(booking);
+                        handleStatusUpdate(booking.id, BOOKING_STATUS.AGREEMENT);
+                      }}
                       className="w-full py-4 bg-gray-900 text-white rounded-2xl font-bold text-[10px] uppercase tracking-widest hover:bg-black transition-all shadow-xl shadow-gray-900/10 flex items-center justify-center gap-2"
                     >
                       <FileText size={16} /> Generate Agreement
@@ -291,10 +295,13 @@ export default function OwnerBookingsPage() {
                   {/* Step 5: Agreement -> Booked */}
                   {booking.status === BOOKING_STATUS.AGREEMENT && (
                     <button 
-                      onClick={() => handleStatusUpdate(booking.id, BOOKING_STATUS.BOOKED, booking.propertyId)}
+                      onClick={() => {
+                        setActiveBooking(booking);
+                        setIsAgreementOpen(true);
+                      }}
                       className="w-full py-4 bg-green-500 text-white rounded-2xl font-bold text-[10px] uppercase tracking-widest hover:bg-green-600 transition-all shadow-xl shadow-green-500/10 flex items-center justify-center gap-2"
                     >
-                      <ShieldCheck size={16} /> Finalize & Close
+                      <ShieldCheck size={16} /> Sign & Finalize
                     </button>
                   )}
 
@@ -335,6 +342,18 @@ export default function OwnerBookingsPage() {
           </div>
         )}
       </div>
+
+      {activeBooking && (
+        <DigitalAgreementModal 
+          isOpen={isAgreementOpen}
+          onClose={() => setIsAgreementOpen(false)}
+          onSign={async (signatureUrl) => {
+            await handleStatusUpdate(activeBooking.id, BOOKING_STATUS.BOOKED, activeBooking.propertyId, signatureUrl);
+            setIsAgreementOpen(false);
+          }}
+          bookingData={activeBooking}
+        />
+      )}
     </DashboardLayout>
   );
 }

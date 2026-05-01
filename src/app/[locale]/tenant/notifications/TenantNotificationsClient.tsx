@@ -41,8 +41,8 @@ export default function TenantNotificationsClient() {
 
     const q = query(
       collection(firestore, 'notifications'),
-      where('recipientId', '==', user.uid),
-      orderBy('createdAt', 'desc'),
+      where('user_id', '==', user.uid),
+      orderBy('created_at', 'desc'),
       limit(50)
     );
 
@@ -56,7 +56,7 @@ export default function TenantNotificationsClient() {
 
   const markAsRead = async (id: string) => {
     try {
-      await updateDoc(doc(firestore, 'notifications', id), { status: 'read' });
+      await updateDoc(doc(firestore, 'notifications', id), { is_read: true });
     } catch (error) {
       console.error("Error marking as read:", error);
     }
@@ -64,8 +64,8 @@ export default function TenantNotificationsClient() {
 
   const markAllAsRead = async () => {
     try {
-      const unread = notifications.filter(n => n.status === 'unread');
-      await Promise.all(unread.map(n => updateDoc(doc(firestore, 'notifications', n.id), { status: 'read' })));
+      const unread = notifications.filter(n => !n.is_read);
+      await Promise.all(unread.map(n => updateDoc(doc(firestore, 'notifications', n.id), { is_read: true })));
       toast.success("All notifications marked as read");
     } catch (error) {
       console.error("Error marking all as read:", error);
@@ -91,6 +91,7 @@ export default function TenantNotificationsClient() {
       case 'rejection': return <XCircle size={20} className="text-red-500" />;
       case 'payment': return <CreditCard size={20} className="text-blue-500" />;
       case 'booking': return <Clock size={20} className="text-amber-500" />;
+      case 'message': return <Bell size={20} className="text-gray-400" />;
       case 'system': return <ShieldCheck size={20} className="text-purple-500" />;
       default: return <Bell size={20} className="text-gray-400" />;
     }
@@ -159,10 +160,10 @@ export default function TenantNotificationsClient() {
                 key={n.id} 
                 className={cn(
                   "group bg-white rounded-[2rem] p-6 border-2 transition-all flex items-center gap-6 relative overflow-hidden",
-                  n.status === 'unread' ? "border-primary/20 shadow-xl shadow-primary/5 bg-primary/[0.02]" : "border-gray-50 shadow-sm"
+                  !n.is_read ? "border-primary/20 shadow-xl shadow-primary/5 bg-primary/[0.02]" : "border-gray-50 shadow-sm"
                 )}
               >
-                 {n.status === 'unread' && (
+                 {!n.is_read && (
                    <div className="absolute top-0 left-0 w-1 h-full bg-primary" />
                  )}
                  <div className="w-14 h-14 bg-gray-50 rounded-2xl flex items-center justify-center shrink-0 shadow-sm group-hover:bg-white transition-colors">
@@ -172,10 +173,10 @@ export default function TenantNotificationsClient() {
                     <div className="flex justify-between items-start mb-1">
                        <h4 className={cn(
                          "text-sm font-bold tracking-tight",
-                         n.status === 'unread' ? "text-gray-900" : "text-gray-500"
+                         !n.is_read ? "text-gray-900" : "text-gray-500"
                        )}>{n.title}</h4>
                        <span className="text-[10px] font-bold text-gray-300 tracking-tight">
-                          {n.createdAt?.toDate ? new Date(n.createdAt.toDate()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Now'}
+                          {n.created_at?.toDate ? new Date(n.created_at.toDate()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Now'}
                        </span>
                     </div>
                     <p className="text-xs font-semibold text-gray-400 leading-relaxed max-w-2xl">{n.message}</p>
@@ -186,7 +187,7 @@ export default function TenantNotificationsClient() {
                     )}
                  </div>
                  <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                    {n.status === 'unread' && (
+                    {!n.is_read && (
                       <button 
                         onClick={() => markAsRead(n.id)}
                         className="p-3 bg-white border border-gray-100 text-gray-400 hover:text-primary rounded-xl shadow-sm"

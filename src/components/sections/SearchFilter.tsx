@@ -125,7 +125,7 @@ export function SearchFilter({ isSticky = false }: { isSticky?: boolean }) {
   return (
     <div className={cn(
       "w-full transition-all duration-500 ease-in-out",
-      isSticky ? "bg-white/95 backdrop-blur-xl shadow-2xl py-3" : "bg-white shadow-[0_30px_60px_rgba(0,0,0,0.15)] py-6 md:py-8 rounded-[2.5rem] md:rounded-[4rem]"
+      isSticky ? "bg-white/95 backdrop-blur-xl shadow-2xl py-3" : "bg-white shadow-[0_30px_60px_rgba(0,0,0,0.15)] py-6 md:py-8 rounded-2xl md:rounded-3xl"
     )}>
       <div className="max-w-7xl mx-auto px-6 md:px-12">
         <div className="flex flex-col lg:flex-row items-stretch lg:items-center gap-6 lg:gap-0">
@@ -193,9 +193,9 @@ export function SearchFilter({ isSticky = false }: { isSticky?: boolean }) {
             </button>
             <button
               onClick={handleSearch}
-              className="h-14 md:h-16 px-10 md:px-14 rounded-2xl md:rounded-[1.5rem] font-black tracking-widest bg-primary hover:bg-primary/90 text-white shadow-xl shadow-primary/20 flex items-center justify-center gap-4 transition-all active:scale-95 text-base md:text-lg"
+              className="h-12 md:h-14 px-8 md:px-10 rounded-xl md:rounded-2xl font-black tracking-widest bg-primary hover:bg-primary/90 text-white shadow-lg shadow-primary/20 flex items-center justify-center gap-3 transition-all active:scale-95 text-sm md:text-base"
             >
-              <Search size={24} strokeWidth={3} />
+              <Search size={20} strokeWidth={3} />
               <span>SEARCH</span>
             </button>
           </div>

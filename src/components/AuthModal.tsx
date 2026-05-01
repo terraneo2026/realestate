@@ -70,6 +70,10 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
       mobile: "",
       password: "",
       confirmPassword: "",
+      aadhaarNumber: "",
+      agencyName: "",
+      licenseNumber: "",
+      address: "",
     },
     mode: "all",
   });
@@ -301,6 +305,37 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
                     {signUpErrors.mobile && <p className="text-[9px] font-bold text-red-500 ml-2">{signUpErrors.mobile.message}</p>}
                   </div>
                 </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-black text-gray-400 tracking-[0.2em] uppercase ml-1">Aadhaar Number</label>
+                  <input {...registerSignUp("aadhaarNumber")} className="w-full px-4 py-3 bg-gray-50 border-2 border-gray-100 rounded-2xl focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all text-sm font-bold" placeholder="1234 5678 9012" maxLength={12} />
+                  {signUpErrors.aadhaarNumber && <p className="text-[9px] font-bold text-red-500 ml-2">{signUpErrors.aadhaarNumber.message}</p>}
+                </div>
+
+                {signUpRole === 'owner' && (
+                  <div className="space-y-1.5 animate-in fade-in slide-in-from-top-2 duration-300">
+                    <label className="text-[10px] font-black text-gray-400 tracking-[0.2em] uppercase ml-1">Permanent Address</label>
+                    <textarea 
+                      {...registerSignUp("address")} 
+                      className="w-full px-4 py-3 bg-gray-50 border-2 border-gray-100 rounded-2xl focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all text-sm font-bold min-h-[80px]" 
+                      placeholder="Enter your full address as per records..." 
+                    />
+                    {signUpErrors.address && <p className="text-[9px] font-bold text-red-500 ml-2">{signUpErrors.address.message}</p>}
+                  </div>
+                )}
+
+                {signUpRole === 'agent' && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-in fade-in slide-in-from-top-2 duration-300">
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-black text-gray-400 tracking-[0.2em] uppercase ml-1">Agency Name (Optional)</label>
+                      <input {...registerSignUp("agencyName")} className="w-full px-4 py-3 bg-gray-50 border-2 border-gray-100 rounded-2xl focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all text-sm font-bold" placeholder="Elite Realty" />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-black text-gray-400 tracking-[0.2em] uppercase ml-1">RERA / License No.</label>
+                      <input {...registerSignUp("licenseNumber")} className="w-full px-4 py-3 bg-gray-50 border-2 border-gray-100 rounded-2xl focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all text-sm font-bold" placeholder="RERA123456" />
+                    </div>
+                  </div>
+                )}
 
                 <div className="space-y-1.5">
                   <label className="text-[10px] font-black text-gray-400 tracking-[0.2em] uppercase ml-1">Email Address</label>

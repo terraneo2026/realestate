@@ -37,6 +37,16 @@ try {
   db = getDatabase(app);
   firestore = getFirestore(app);
   storage = getStorage(app);
+
+  // Handle common browser storage errors like FILE_ERROR_NO_SPACE
+  if (typeof window !== "undefined") {
+    window.addEventListener('unhandledrejection', (event) => {
+      if (event.reason && (event.reason.name === 'UnknownError' || event.reason.message?.includes('FILE_ERROR_NO_SPACE'))) {
+        console.error("Critical Storage Error: Browser disk space or IndexedDB limit reached.");
+        console.info("Solution: Clear site data for localhost:3000 in Chrome DevTools (Application > Storage > Clear site data).");
+      }
+    });
+  }
 } catch (error) {
   console.error("[DEBUG] Error initializing Firebase services:", error);
 }

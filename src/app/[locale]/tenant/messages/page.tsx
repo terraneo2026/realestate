@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, Suspense } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { auth, firestore } from "@/lib/firebase";
@@ -16,6 +16,27 @@ function cn(...inputs: ClassValue[]) {
 }
 
 export default function MessagesPage() {
+  return (
+    <Suspense fallback={
+      <DashboardLayout userRole="tenant">
+        <div className="h-[600px] bg-white rounded-[3rem] shadow-xl border border-gray-100 flex animate-pulse">
+           <div className="w-80 border-r border-gray-100 p-6 space-y-4">
+              {[1, 2, 3, 4].map(i => <div key={i} className="h-16 bg-gray-50 rounded-2xl" />)}
+           </div>
+           <div className="flex-1 p-10 flex flex-col justify-end gap-4">
+              <div className="h-12 bg-gray-50 rounded-2xl w-2/3 self-start" />
+              <div className="h-12 bg-gray-50 rounded-2xl w-2/3 self-end" />
+              <div className="h-16 bg-gray-50 rounded-2xl w-full mt-8" />
+           </div>
+        </div>
+      </DashboardLayout>
+    }>
+      <MessagesContent />
+    </Suspense>
+  );
+}
+
+function MessagesContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const pathname = usePathname();

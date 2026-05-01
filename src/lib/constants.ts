@@ -10,12 +10,11 @@ export const BOOKING_STATUS = {
 };
 
 export const PROPERTY_STATUS = {
-  ACTIVE: 'active',
-  PENDING: 'pending',
-  REJECTED: 'rejected',
-  ON_HOLD: 'on_hold',
-  RENTED: 'rented',
-  INACTIVE: 'inactive',
+  AVAILABLE: 'AVAILABLE',
+  HOLD: 'HOLD',
+  BOOKED: 'BOOKED',
+  PENDING: 'PENDING',
+  REJECTED: 'REJECTED'
 };
 
 export const TOKEN_AMOUNT = 500; // Example token amount in INR

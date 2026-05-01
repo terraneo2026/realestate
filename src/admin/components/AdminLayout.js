@@ -36,12 +36,14 @@ function cn(...inputs) {
 
 const AdminLayout = ({ children }) => {
   const [isSidebarOpen, setSidebarOpen] = useState(true);
+  const [isHovered, setIsHovered] = useState(false);
   const [loading, setLoading] = useState(true);
   const [authorized, setAuthorized] = useState(false);
   const [notifications, setNotifications] = useState([]);
   const [showNotifications, setShowNotifications] = useState(false);
   const [userProfile, setUserProfile] = useState(null);
   const router = useRouter();
+  const isExpanded = isSidebarOpen || isHovered;
 
   useEffect(() => {
     let unsubscribeNotifications = null;
@@ -95,6 +97,7 @@ const AdminLayout = ({ children }) => {
 
   const navItems = [
     { name: 'Dashboard', href: '/admin', icon: Home },
+    { name: 'Configuration', href: '/admin/configuration', icon: Settings },
     { name: 'Notifications', href: '/admin/notifications', icon: Bell },
     { name: 'Properties', href: '/admin/properties', icon: Building2 },
     { name: 'Categories', href: '/admin/categories', icon: List },
@@ -123,11 +126,15 @@ const AdminLayout = ({ children }) => {
 
   return (
     <div className="min-h-screen bg-[#F2F4F7] flex font-sans selection:bg-black/10 selection:text-black relative">
-      {/* Background soft gradients matching reference */}
-      <div className="absolute top-[-20%] left-[-10%] w-[60%] h-[60%] bg-blue-100/40 blur-[150px] rounded-full -z-10 animate-pulse" />
-      <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-green-100/30 blur-[150px] rounded-full -z-10 animate-pulse" style={{ animationDelay: '2s' }} />
-      <div className="absolute top-[20%] right-[10%] w-[40%] h-[40%] bg-yellow-100/30 blur-[150px] rounded-full -z-10 animate-pulse" style={{ animationDelay: '4s' }} />
-
+      <style dangerouslySetInnerHTML={{ __html: `
+        .no-scrollbar::-webkit-scrollbar {
+          display: none !important;
+        }
+        .no-scrollbar {
+          -ms-overflow-style: none !important;
+          scrollbar-width: none !important;
+        }
+      `}} />
       {/* Sidebar Overlay */}
       {!isSidebarOpen && (
         <div 
@@ -137,196 +144,115 @@ const AdminLayout = ({ children }) => {
       )}
 
       {/* Sidebar */}
-      <aside className={`
-        relative z-50 transition-all duration-700 ease-[cubic-bezier(0.23,1,0.32,1)]
-        ${isSidebarOpen ? 'w-72' : 'w-24 -translate-x-full lg:translate-x-0'}
-        bg-white/70 backdrop-blur-3xl border-r border-white/40 flex flex-col shadow-[24px_0_80px_-20px_rgba(0,0,0,0.05)]
-      `}>
-        {/* Logo Section - Matching PROPIXO style */}
-        <div className="h-[100px] flex items-center px-8 shrink-0">
-          <Link href="/admin" className="flex items-center gap-3 overflow-hidden group">
-            <div className="w-10 h-10 bg-[#087c7c] rounded-xl flex items-center justify-center shrink-0 shadow-2xl shadow-[#087c7c]/20 group-hover:scale-110 transition-transform duration-500">
+      <aside 
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
+        style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+        className={cn(
+          "fixed lg:sticky top-0 z-50 h-screen transition-all duration-500 ease-[cubic-bezier(0.23,1,0.32,1)] flex flex-col no-scrollbar",
+          "bg-white border-r border-gray-100 shadow-2xl shrink-0 group/sidebar",
+          isExpanded ? "w-72 translate-x-0" : "w-0 lg:w-20 -translate-x-full lg:translate-x-0"
+        )}
+      >
+        {/* Logo Section */}
+        <div className="h-[80px] flex items-center px-6 shrink-0 overflow-hidden">
+          <Link href="/admin" className="flex items-center gap-4 group/logo">
+            <div className="w-10 h-10 bg-[#087c7c] rounded-2xl flex items-center justify-center shadow-lg shadow-[#087c7c]/20 group-hover/logo:scale-110 transition-all duration-500 shrink-0">
                <ShieldCheck className="text-white" size={20} />
             </div>
-            {isSidebarOpen && (
-              <div className="flex flex-col">
-                <span className="text-xl font-bold text-gray-900 tracking-tight leading-none">Relocate.</span>
-                <span className="text-xs font-medium text-[#087C7C] mt-1">Premium Operations</span>
-              </div>
-            )}
+            <div className={cn(
+              "flex flex-col transition-all duration-500",
+              isExpanded ? "opacity-100 translate-x-0" : "opacity-0 -translate-x-4 pointer-events-none"
+            )}>
+              <span className="text-lg font-black text-gray-900 tracking-tight leading-none">Relocate</span>
+              <span className="text-[10px] font-black text-[#087c7c] uppercase tracking-[0.2em] mt-1">Admin Panel</span>
+            </div>
           </Link>
         </div>
 
         {/* Navigation */}
-        <nav className="py-4 px-4 overflow-visible">
-           <div className="space-y-1.5">
-              {navItems.map((item) => {
-                const isActive = router.pathname === item.href;
-                const Icon = item.icon;
-                return (
-                  <Link 
-                    key={item.name} 
-                    href={item.href}
-                    className={`
-                      group flex items-center h-12 rounded-xl transition-all duration-500 relative
-                      ${isActive 
-                        ? 'bg-[#087c7c] text-white shadow-[0_15px_30px_-5px_rgba(8,124,124,0.3)]' 
-                        : 'text-gray-400 hover:bg-white hover:text-gray-900 hover:shadow-xl hover:shadow-gray-200/50'
-                      }
-                      ${!isSidebarOpen && 'justify-center px-0'}
-                      ${isSidebarOpen && 'px-5'}
-                    `}
-                  >
-                    <Icon size={18} className={cn(isActive ? 'text-white scale-110' : 'group-hover:text-[#087c7c] group-hover:scale-110', "transition-all duration-500 shrink-0")} />
-                    <span className={cn(
-                      "ml-3 text-sm font-semibold transition-all duration-500 whitespace-nowrap overflow-hidden",
-                      isSidebarOpen ? 'opacity-100 w-auto' : 'opacity-0 w-0 ml-0'
-                    )}>
-                      {item.name}
-                    </span>
-                    {isActive && isSidebarOpen && (
-                      <div className="absolute right-5 w-1 h-1 bg-white rounded-full shadow-[0_0_10px_#fff]" />
-                    )}
-                    {!isSidebarOpen && (
-                       <div className="absolute left-full ml-6 px-4 py-3 bg-gray-900 text-white text-xs font-semibold rounded-xl opacity-0 pointer-events-none group-hover:opacity-100 transition-all duration-300 translate-x-[-10px] group-hover:translate-x-0 whitespace-nowrap z-50 shadow-2xl">
-                          {item.name}
-                       </div>
-                    )}
-                  </Link>
-                );
-              })}
-           </div>
+        <nav 
+          style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+          className="flex-1 py-4 px-3 overflow-y-auto no-scrollbar flex flex-col gap-1"
+        >
+          {navItems.map((item) => {
+            const isActive = router.pathname === item.href;
+            const Icon = item.icon;
+            return (
+              <Link 
+                key={item.name} 
+                href={item.href}
+                className={cn(
+                  "group flex items-center rounded-2xl transition-all duration-300 relative",
+                  isExpanded ? "px-4 py-3.5 gap-4" : "p-3.5 justify-center",
+                  isActive 
+                    ? 'bg-[#087c7c] text-white shadow-xl shadow-[#087c7c]/20' 
+                    : 'text-gray-500 hover:bg-gray-50 hover:text-[#087c7c]'
+                )}
+              >
+                <Icon size={20} className={cn(
+                  "transition-all duration-300 shrink-0",
+                  isActive ? 'scale-110' : 'group-hover:scale-110'
+                )} />
+                <span className={cn(
+                  "text-sm font-bold tracking-tight whitespace-nowrap transition-all duration-300",
+                  isExpanded ? "opacity-100 translate-x-0" : "opacity-0 -translate-x-4 absolute"
+                )}>
+                  {item.name}
+                </span>
+
+                {!isExpanded && (
+                  <div className="absolute left-full ml-4 px-3 py-2 bg-gray-900 text-white text-[10px] font-black uppercase tracking-widest rounded-xl opacity-0 group-hover:opacity-100 translate-x-2 group-hover:translate-x-0 transition-all pointer-events-none z-[100] whitespace-nowrap shadow-2xl">
+                    {item.name}
+                  </div>
+                )}
+              </Link>
+            );
+          })}
         </nav>
 
-        {/* Logout Section */}
-        <div className="p-6">
-          <button 
-            onClick={handleLogout}
-            className={`
-              w-full h-12 flex items-center rounded-xl text-red-500 hover:bg-red-50 transition-all duration-500
-              ${!isSidebarOpen ? 'justify-center px-0' : 'px-5'}
-            `}
-          >
-            <div className={`flex items-center gap-3 ${!isSidebarOpen && 'justify-center w-full'}`}>
-               <LogOut size={18} />
-               {isSidebarOpen && <span className="text-sm font-semibold">Logout</span>}
-            </div>
-          </button>
+        {/* User & Logout */}
+        <div className="p-4 border-t border-gray-100">
+           {isExpanded && (
+             <div className="flex items-center gap-3 mb-6 px-2 animate-in fade-in slide-in-from-left-4">
+                <div className="w-10 h-10 rounded-xl overflow-hidden border-2 border-gray-100">
+                   <div className="w-full h-full bg-primary/10 flex items-center justify-center text-primary font-black text-xs">
+                     {userProfile?.fullName?.charAt(0) || 'A'}
+                   </div>
+                </div>
+                <div className="flex-1 min-w-0">
+                   <p className="text-xs font-bold text-gray-900 truncate">{userProfile?.fullName || 'Administrator'}</p>
+                   <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Admin</p>
+                </div>
+             </div>
+           )}
+           <button 
+             onClick={handleLogout}
+             className={cn(
+               "w-full flex items-center rounded-2xl transition-all duration-300 relative group/logout",
+               isExpanded ? "px-4 py-3.5 gap-4" : "p-3.5 justify-center",
+               "text-gray-500 hover:bg-red-50 hover:text-red-500"
+             )}
+           >
+              <LogOut size={20} className="shrink-0 transition-transform group-hover/logout:-translate-x-1" />
+              <span className={cn(
+                "text-sm font-bold tracking-tight transition-all duration-300",
+                isExpanded ? "opacity-100" : "opacity-0 absolute"
+              )}>
+                Logout
+              </span>
+
+              {!isExpanded && (
+                <div className="absolute left-full ml-4 px-3 py-2 bg-red-500 text-white text-[10px] font-black uppercase tracking-widest rounded-xl opacity-0 group-hover:opacity-100 translate-x-2 group-hover:translate-x-0 transition-all pointer-events-none z-[100] whitespace-nowrap shadow-2xl">
+                  Logout
+                </div>
+              )}
+           </button>
         </div>
       </aside>
 
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-w-0 relative transition-all duration-700 ease-[cubic-bezier(0.23,1,0.32,1)]">
-        {/* Header */}
-        <header className="h-[100px] sticky top-0 z-40">
-           <div className="h-full px-8 flex items-center justify-between max-w-[1800px] mx-auto w-full">
-              <div className="flex items-center gap-8">
-                 <button 
-                   onClick={() => setSidebarOpen(!isSidebarOpen)}
-                   className="p-3 bg-white text-gray-400 hover:text-[#087c7c] hover:bg-gray-50 rounded-xl transition-all border border-white shadow-xl shadow-gray-200/30 shrink-0"
-                 >
-                   {isSidebarOpen ? <X size={18} /> : <Menu size={18} />}
-                 </button>
-                 
-                 <div className="hidden xl:flex items-center gap-2 bg-white/60 backdrop-blur-2xl p-1.5 rounded-full border border-white/40 shadow-2xl shadow-gray-200/20">
-                    {[
-                      { name: 'Dashboard', href: '/admin' },
-                      { name: 'Agents', href: '/admin/agents' },
-                      { name: 'Clients', href: '/admin/customers' },
-                      { name: 'Analytics', href: '/admin/reports' },
-                      { name: 'Calendar', href: '/admin/monitoring' },
-                      { name: 'Messages', href: '/admin/enquiries' }
-                    ].map((item) => (
-                      <Link key={item.name} href={item.href}>
-                        <button className={`px-6 py-2.5 rounded-full text-[11px] font-bold transition-all duration-500 ${router.pathname === item.href ? 'bg-[#064e4e] text-white shadow-xl shadow-[#064e4e]/20' : 'text-gray-400 hover:text-[#087c7c] hover:bg-white'}`}>
-                           {item.name}
-                        </button>
-                      </Link>
-                    ))}
-                 </div>
-              </div>
-
-              <div className="flex items-center gap-4">
-                 <div className="relative">
-                    <button 
-                      onClick={() => setShowNotifications(!showNotifications)}
-                      className="relative p-3 bg-white text-gray-400 hover:text-[#087c7c] rounded-xl transition-all border border-white shadow-xl shadow-gray-200/30 shrink-0"
-                    >
-                       <Bell size={18} />
-                       {unreadCount > 0 && (
-                         <span className="absolute top-2.5 right-2.5 w-2 h-2 bg-[#087c7c] border-2 border-white rounded-full shadow-[0_0_15px_rgba(239,68,68,0.5)] animate-pulse" />
-                       )}
-                    </button>
-
-                    {showNotifications && (
-                      <div className="absolute right-0 mt-4 w-80 bg-white rounded-3xl shadow-2xl border border-gray-100 overflow-hidden z-50 animate-in fade-in slide-in-from-top-5 duration-300">
-                        <div className="p-6 border-b border-gray-50 flex items-center justify-between">
-                          <h3 className="text-sm font-bold text-gray-900">Recent Notifications</h3>
-                          <Link href="/admin/notifications" className="text-xs font-bold text-[#087c7c] hover:underline" onClick={() => setShowNotifications(false)}>
-                            View all
-                          </Link>
-                        </div>
-                        <div className="max-h-96 overflow-y-auto">
-                          {notifications.length > 0 ? (
-                            notifications.slice(0, 5).map((n) => (
-                              <div 
-                                key={n.id} 
-                                className={cn(
-                                  "p-4 border-b border-gray-50 hover:bg-gray-50 transition-colors cursor-pointer",
-                                  !n.isRead && "bg-[#087c7c]/5"
-                                )}
-                                onClick={async () => {
-                                  if (!n.isRead && n.id) await markNotificationAsRead(n.id);
-                                  if (n.metadata?.link) router.push(n.metadata.link);
-                                  setShowNotifications(false);
-                                }}
-                              >
-                                <div className="flex gap-3">
-                                  <div className={cn(
-                                    "w-8 h-8 rounded-lg flex items-center justify-center shrink-0",
-                                    n.category === 'payment' ? "bg-green-100 text-green-600" :
-                                    n.category === 'approval' ? "bg-blue-100 text-blue-600" :
-                                    "bg-gray-100 text-gray-600"
-                                  )}>
-                                    {n.category === 'payment' ? <CreditCard size={14} /> :
-                                     n.category === 'approval' ? <CheckCircle2 size={14} /> :
-                                     <Bell size={14} />}
-                                  </div>
-                                  <div className="flex-1 min-w-0">
-                                    <p className="text-xs font-bold text-gray-900 truncate">{n.title}</p>
-                                    <p className="text-xs text-gray-500 line-clamp-2 mt-0.5">{n.message}</p>
-                                    <p className="text-xs text-gray-400 mt-1">
-                                      {n.createdAt?.toDate ? n.createdAt.toDate().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Just now'}
-                                    </p>
-                                  </div>
-                                </div>
-                              </div>
-                            ))
-                          ) : (
-                            <div className="p-8 text-center">
-                              <p className="text-xs text-gray-400">No new notifications</p>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    )}
-                 </div>
-                 
-                 <div className="w-px h-6 bg-gray-200 mx-1 shrink-0" />
-                 
-                 <div className="flex items-center gap-3 group cursor-pointer shrink-0">
-                    <div className="text-right hidden sm:block">
-                       <p className="text-xs font-bold text-gray-900 group-hover:text-[#087C7C] transition-colors">Administrator</p>
-                       <p className="text-xs font-medium text-gray-400">Admin</p>
-                    </div>
-                    <div className="w-10 h-10 bg-[#087c7c] rounded-xl flex items-center justify-center text-white font-bold text-sm shadow-2xl shadow-[#087c7c]/20 border-2 border-white overflow-hidden group-hover:scale-105 transition-transform duration-500">
-                       A
-                    </div>
-                 </div>
-              </div>
-           </div>
-        </header>
-
         {/* Content */}
         <main className="p-4 md:p-8 lg:p-10 max-w-[1800px] w-full mx-auto animate-in fade-in slide-in-from-bottom-10 duration-1000">
            {children}

@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import { Calendar as CalendarIcon, Clock, ChevronLeft, ChevronRight, CheckCircle2, AlertCircle, Loader2, CreditCard } from 'lucide-react';
-import { TOKEN_AMOUNT } from '@/lib/constants';
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 
@@ -14,6 +13,7 @@ interface BookingCalendarProps {
   propertyId: string;
   onBookingSubmit: (date: Date, slot: string) => Promise<void>;
   loading?: boolean;
+  tokenAmount?: number;
 }
 
 const TIME_SLOTS = [
@@ -21,7 +21,7 @@ const TIME_SLOTS = [
   "02:00 PM", "03:00 PM", "04:00 PM", "05:00 PM", "06:00 PM"
 ];
 
-export function BookingCalendar({ propertyId, onBookingSubmit, loading }: BookingCalendarProps) {
+export function BookingCalendar({ propertyId, onBookingSubmit, loading, tokenAmount = 500 }: BookingCalendarProps) {
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
   const [currentMonth, setCurrentMonth] = useState(new Date());
@@ -170,12 +170,12 @@ export function BookingCalendar({ propertyId, onBookingSubmit, loading }: Bookin
           ) : (
             <>
               <CreditCard size={18} />
-              <span>Pay ₹{TOKEN_AMOUNT} & Book</span>
+              <span>Pay ₹{tokenAmount} & Book</span>
             </>
           )}
         </button>
         <p className="mt-4 text-[9px] font-bold text-gray-400 text-center leading-relaxed">
-          * A token payment of ₹{TOKEN_AMOUNT} is required to secure your visit. Refundable upon visit completion.
+          * A token payment of ₹{tokenAmount} is required to secure your visit. Refundable upon visit completion.
         </p>
       </div>
     </div>

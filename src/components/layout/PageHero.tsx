@@ -18,7 +18,7 @@ export function PageHero({
   backgroundImage = 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?q=80&w=1973&auto=format&fit=crop'
 }: PageHeroProps) {
   return (
-    <div className="relative text-white py-12 md:py-16 lg:py-20 overflow-hidden min-h-[350px] flex items-center">
+    <div className="relative text-white py-8 md:py-12 lg:py-14 overflow-hidden min-h-[250px] flex items-center">
       {/* Background Image */}
       <div className="absolute inset-0 z-0">
         <img 
