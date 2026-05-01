@@ -30,7 +30,7 @@ export default function TenantDashboardClient() {
 
   const [loading, setLoading] = useState(true);
   const [userData, setUserData] = useState<any>(null);
-  const [activeTab, setActiveTab] = useState<'overview' | 'visits' | 'rent' | 'kyc'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'visits' | 'rent' | 'kyc' | 'saved'>('overview');
   const [stats, setStats] = useState({
     savedCount: 0,
     searchCount: 0,
@@ -160,6 +160,7 @@ export default function TenantDashboardClient() {
       <div className="flex overflow-x-auto no-scrollbar gap-2 p-1.5 bg-white rounded-2xl md:rounded-[2rem] border border-gray-100 shadow-xl shadow-gray-200/50 mb-10">
         {[
           { id: 'overview', label: 'Overview', icon: LayoutDashboard },
+          { id: 'saved', label: 'Saved Items', icon: Heart },
           { id: 'visits', label: 'Visits & Tours', icon: Calendar },
           { id: 'rent', label: 'Rent & Payments', icon: CreditCard },
           { id: 'kyc', label: 'Verification', icon: ShieldCheck },
@@ -349,6 +350,59 @@ export default function TenantDashboardClient() {
               { id: '3', month: 'Mar 2024', amount: 25000, status: 'paid', dueDate: '05 Mar 2024', paidAt: '04 Mar 2024', transactionId: 'TXN-77123' },
             ]}
           />
+        </div>
+      )}
+
+      {activeTab === 'saved' && (
+        <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+           <div className="bg-white rounded-[2.5rem] shadow-2xl shadow-gray-200/50 border border-gray-100 p-10">
+              <div className="flex justify-between items-center mb-10">
+                <h2 className="text-3xl font-black text-gray-900 tracking-tight">Saved Properties</h2>
+                <div className="px-4 py-2 bg-red-50 text-red-600 rounded-xl text-[10px] font-black uppercase tracking-widest">{stats.savedCount} Items</div>
+              </div>
+
+              {recentSaved.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                   {recentSaved.map((prop) => (
+                      <div key={prop.id} className="relative group">
+                         <Link href={`/${locale}/property/${prop.slug || prop.id}`}>
+                            <div className="bg-gray-50 rounded-[2rem] overflow-hidden border border-gray-100 hover:shadow-2xl hover:shadow-gray-300 transition-all group">
+                               <div className="relative h-48">
+                                  <img src={prop.coverImage || prop.image || '/placeholder.svg'} alt="" className="w-full h-full object-cover group-hover:scale-105 transition-all duration-700" />
+                                  <div className="absolute top-4 left-4 px-3 py-1 bg-white/90 backdrop-blur-sm rounded-lg text-[10px] font-black uppercase tracking-widest text-gray-900 shadow-sm">
+                                     ₹{Number(prop.price || prop.budget || 0).toLocaleString()}
+                                  </div>
+                               </div>
+                               <div className="p-6">
+                                  <h4 className="font-black text-gray-900 text-lg mb-1 truncate">{prop.title}</h4>
+                                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-4 flex items-center gap-1">
+                                     📍 {prop.location?.area || prop.city || 'Location N/A'}
+                                  </p>
+                                  <div className="flex items-center justify-between pt-4 border-t border-gray-100">
+                                     <span className="text-[9px] font-black uppercase tracking-widest text-primary">View Details</span>
+                                     <ArrowRight size={14} className="text-primary" />
+                                  </div>
+                               </div>
+                            </div>
+                         </Link>
+                      </div>
+                   ))}
+                </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center py-20 text-center">
+                   <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center text-gray-300 mb-6">
+                      <Heart size={40} />
+                   </div>
+                   <h3 className="text-xl font-black text-gray-900 mb-2 tracking-tight">No saved properties yet</h3>
+                   <p className="text-gray-500 text-sm font-bold tracking-tight uppercase text-[10px] mb-8">Start browsing and heart your favorite items</p>
+                   <Link href={`/${locale}/properties`}>
+                      <button className="px-8 py-4 bg-gray-900 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-primary transition-all shadow-xl">
+                         Browse Properties
+                      </button>
+                   </Link>
+                </div>
+              )}
+           </div>
         </div>
       )}
 

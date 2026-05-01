@@ -2,10 +2,20 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
-import { Button } from "./ui";
-import { X } from "lucide-react";
+import { X, Heart, Loader2 } from "lucide-react";
+import { auth, firestore } from "@/lib/firebase";
+import { doc, updateDoc, arrayUnion, arrayRemove, getDoc } from "firebase/firestore";
+import { onAuthStateChanged } from "firebase/auth";
+import { toast } from "sonner";
+import AuthModal from "./AuthModal";
+import { clsx, type ClassValue } from "clsx";
+import { twMerge } from "tailwind-merge";
+
+function cn(...inputs: ClassValue[]) {
+  return twMerge(clsx(inputs));
+}
 
 interface PropertyCardProps {
   id: string | number;
@@ -37,6 +47,59 @@ export default function PropertyCard({
   const [imageError, setImageError] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [showPopup, setShowPopup] = useState(false);
+  const [isSaved, setIsSaved] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [authModalOpen, setAuthModalOpen] = useState(false);
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        const userDoc = await getDoc(doc(firestore, "users", user.uid));
+        if (userDoc.exists()) {
+          const favorites = userDoc.data().favorites || [];
+          setIsSaved(favorites.includes(String(id)));
+        }
+      } else {
+        setIsSaved(false);
+      }
+    });
+    return () => unsubscribe();
+  }, [id]);
+
+  const handleToggleSave = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    const user = auth.currentUser;
+    if (!user) {
+      toast.error("Please login to save properties");
+      setAuthModalOpen(true);
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const userRef = doc(firestore, "users", user.uid);
+      if (isSaved) {
+        await updateDoc(userRef, {
+          favorites: arrayRemove(String(id))
+        });
+        setIsSaved(false);
+        toast.success("Removed from saved properties");
+      } else {
+        await updateDoc(userRef, {
+          favorites: arrayUnion(String(id))
+        });
+        setIsSaved(true);
+        toast.success("Property saved to dashboard");
+      }
+    } catch (error) {
+      console.error("Error saving property:", error);
+      toast.error("Failed to save property");
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const propertyImages = images && images.length > 0 ? images : [image || "/placeholder.svg"];
   
@@ -103,10 +166,22 @@ export default function PropertyCard({
 
             {/* Type Badge - Top Right */}
             <div className={`absolute top-3 right-3 px-3 py-1.5 rounded-lg text-xs font-semibold text-white z-10 ${
-              type === "rent" ? "primaryBg" : "bg-blue-600"
+              type === "rent" ? "bg-primary" : "bg-blue-600"
             }`}>
               {type === "rent" ? "For Rent" : "For Lease"}
             </div>
+
+            {/* Save Button - Top Left */}
+            <button
+              onClick={handleToggleSave}
+              disabled={saving}
+              className={cn(
+                "absolute top-3 left-3 w-10 h-10 rounded-xl flex items-center justify-center transition-all z-10 shadow-lg",
+                isSaved ? "bg-red-500 text-white" : "bg-white/80 text-gray-400 hover:text-red-500 hover:bg-white"
+              )}
+            >
+              {saving ? <Loader2 size={18} className="animate-spin" /> : <Heart size={18} fill={isSaved ? "currentColor" : "none"} />}
+            </button>
           </div>
 
           {/* Content Container */}
@@ -193,6 +268,9 @@ export default function PropertyCard({
           </div>
         </div>
       )}
+
+      {/* Auth Modal if triggered from save */}
+      <AuthModal isOpen={authModalOpen} onClose={() => setAuthModalOpen(false)} />
     </>
   );
 }

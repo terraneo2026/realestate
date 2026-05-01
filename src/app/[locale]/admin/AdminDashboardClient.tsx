@@ -45,6 +45,7 @@ import {
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import AdminLayout from '@/components/admin-layout-panel/AdminLayout';
+import { PropertyCard } from '@/components/cards/PropertyCard';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
@@ -180,43 +181,7 @@ const PropertyStats = ({ stats }: any) => (
   </div>
 );
 
-const PropertyCard = ({ property }: any) => (
-  <div className="bg-white rounded-[1.5rem] md:rounded-[2rem] overflow-hidden shadow-sm border border-gray-100 group hover:shadow-xl transition-all duration-500 flex flex-col h-full">
-    <div className="relative h-[180px] md:h-[240px] overflow-hidden shrink-0">
-      <img 
-        src={property?.image || '/placeholder.svg'} 
-        alt="" 
-        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" 
-      />
-      <button className="absolute top-3 right-3 md:top-4 md:right-4 w-8 h-8 md:w-10 md:h-10 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center text-white border border-white/30 hover:bg-white hover:text-[#087c7c] transition-all shadow-xl">
-        <ArrowUpRight size={18} className="md:w-5 md:h-5" />
-      </button>
-    </div>
-    <div className="p-4 md:p-6 flex flex-col flex-1">
-      <h3 className="text-base md:text-lg font-bold text-gray-900 tracking-tight mb-3 md:mb-4 line-clamp-1">
-        {property?.title || 'Relocate property'}
-      </h3>
-      <div className="flex flex-wrap gap-1.5 md:gap-2 mb-4 md:mb-6">
-        {[
-          { label: property?.bedrooms ? `${property.bedrooms} rooms` : '6 rooms' },
-          { label: property?.furnishing?.toLowerCase() || 'furnished' },
-          { label: 'terrace' },
-          { label: '+3', more: true },
-        ].map((tag, i) => (
-          <span key={i} className={cn(
-            "px-2 md:px-3 py-1 rounded-full text-[10px] font-bold tracking-tight",
-            tag.more ? "bg-gray-50 text-gray-400" : "bg-gray-50 text-gray-600"
-          )}>
-            {tag.label}
-          </span>
-        ))}
-      </div>
-      <div className="mt-auto pt-3 md:pt-4 border-t border-gray-50 flex justify-between items-center">
-        <span className="text-xl md:text-2xl font-black text-gray-900 tracking-tight">₹{property?.price?.toLocaleString() || '25,000'}</span>
-      </div>
-    </div>
-  </div>
-);
+
 
 // --- Main Page Client ---
 

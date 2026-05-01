@@ -2,14 +2,40 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
 import AuthModal from "../AuthModal";
+import { auth, firestore } from "@/lib/firebase";
+import { onAuthStateChanged, signOut } from "firebase/auth";
+import { doc, getDoc } from "firebase/firestore";
 
 const Header = () => {
   const pathname = usePathname();
   const locale = pathname?.split('/')[1] || 'en';
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [authModalOpen, setAuthModalOpen] = useState(false);
+  const [user, setUser] = useState<any>(null);
+  const [userProfile, setUserProfile] = useState<any>(null);
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+      setUser(currentUser);
+      if (currentUser) {
+        const docRef = doc(firestore, "users", currentUser.uid);
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+          setUserProfile(docSnap.data());
+        }
+      } else {
+        setUserProfile(null);
+      }
+    });
+    return () => unsubscribe();
+  }, []);
+
+  const handleLogout = async () => {
+    await signOut(auth);
+    localStorage.removeItem('userProfile');
+    window.location.href = `/${locale}`;
+  };
 
   return (
     <header>
@@ -78,14 +104,34 @@ const Header = () => {
               </Link>
             </nav>
 
-            {/* Login/Register Button */}
-            <button
-              onClick={() => setAuthModalOpen(true)}
-              className="hidden md:flex items-center gap-2 bg-gray-900 text-white px-3 md:px-5 py-2 rounded-lg font-semibold hover:bg-gray-800 transition text-xs md:text-sm flex-shrink-0 whitespace-nowrap"
-            >
-              <span>👤</span>
-              <span className="hidden lg:inline">Login/Register</span>
-            </button>
+            {/* Login/Register or Profile Button */}
+            {user ? (
+              <div className="hidden md:flex items-center gap-4">
+                <Link 
+                  href={`/${locale}/${userProfile?.role || 'tenant'}/dashboard`}
+                  className="flex items-center gap-2 bg-gray-100 text-gray-900 px-4 py-2 rounded-lg font-bold hover:bg-gray-200 transition text-sm"
+                >
+                  <div className="w-6 h-6 bg-primary text-white rounded-full flex items-center justify-center text-[10px]">
+                    {userProfile?.fullName?.charAt(0) || 'U'}
+                  </div>
+                  <span>Dashboard</span>
+                </Link>
+                <button 
+                  onClick={handleLogout}
+                  className="text-gray-400 hover:text-red-500 transition text-sm font-bold uppercase tracking-widest text-[10px]"
+                >
+                  Logout
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={() => setAuthModalOpen(true)}
+                className="hidden md:flex items-center gap-2 bg-gray-900 text-white px-3 md:px-5 py-2 rounded-lg font-semibold hover:bg-gray-800 transition text-xs md:text-sm flex-shrink-0 whitespace-nowrap"
+              >
+                <span>👤</span>
+                <span className="hidden lg:inline">Login/Register</span>
+              </button>
+            )}
 
             {/* Mobile Menu Button */}
             <button

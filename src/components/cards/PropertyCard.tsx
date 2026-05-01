@@ -9,7 +9,9 @@ import { Property } from '@/types';
 import { X, Heart, MapPin, Bed, Bath, ArrowRight, Maximize2 } from 'lucide-react';
 import { auth, firestore } from '@/lib/firebase';
 import { doc, getDoc, updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
+import { onAuthStateChanged } from "firebase/auth";
 import { toast } from "sonner";
+import AuthModal from "../AuthModal";
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 
@@ -59,22 +61,24 @@ export function PropertyCard({ property }: PropertyCardProps) {
   const router = useRouter();
   const [isFavorite, setIsFavorite] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [authModalOpen, setAuthModalOpen] = useState(false);
 
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const propertyImages = property.images && property.images.length > 0 ? property.images : [property.image || '/placeholder.svg'];
   
   useEffect(() => {
-    const checkFavorite = async () => {
-      const user = auth.currentUser;
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
         const userDoc = await getDoc(doc(firestore, "users", user.uid));
         if (userDoc.exists()) {
           const favorites = userDoc.data().favorites || [];
-          setIsFavorite(favorites.includes(property.id));
+          setIsFavorite(favorites.map(String).includes(String(property.id)));
         }
+      } else {
+        setIsFavorite(false);
       }
-    };
-    checkFavorite();
+    });
+    return () => unsubscribe();
   }, [property.id]);
 
   const toggleFavorite = async (e: React.MouseEvent) => {
@@ -84,6 +88,7 @@ export function PropertyCard({ property }: PropertyCardProps) {
     const user = auth.currentUser;
     if (!user) {
       toast.error("Please login to save properties");
+      setAuthModalOpen(true);
       return;
     }
 
@@ -92,13 +97,13 @@ export function PropertyCard({ property }: PropertyCardProps) {
       const userRef = doc(firestore, "users", user.uid);
       if (isFavorite) {
         await updateDoc(userRef, {
-          favorites: arrayRemove(property.id)
+          favorites: arrayRemove(String(property.id))
         });
         setIsFavorite(false);
         toast.success("Removed from favorites");
       } else {
         await updateDoc(userRef, {
-          favorites: arrayUnion(property.id)
+          favorites: arrayUnion(String(property.id))
         });
         setIsFavorite(true);
         toast.success("Added to favorites");
@@ -249,6 +254,7 @@ export function PropertyCard({ property }: PropertyCardProps) {
           </div>
         </Card>
       </Link>
+      <AuthModal isOpen={authModalOpen} onClose={() => setAuthModalOpen(false)} />
     </div>
   );
 }
