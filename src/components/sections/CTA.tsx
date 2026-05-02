@@ -3,12 +3,16 @@
 import Link from 'next/link';
 import { Button } from '@/components/ui';
 import { Container } from '@/components/layout';
+import { useParams } from 'next/navigation';
 
 /**
  * CTA Section
  * Call-to-action banner to encourage user engagement
  */
 export function CTASection() {
+  const params = useParams();
+  const locale = params?.locale || 'en';
+
   return (
     <section className="bg-primary text-white py-12 md:py-16 lg:py-20 rounded-[3rem] mx-4 md:mx-8 mb-12">
       <Container className="text-center">
@@ -18,11 +22,11 @@ export function CTASection() {
         <p className="text-lg md:text-xl text-white/90 mb-10 md:mb-12 max-w-3xl mx-auto leading-relaxed">
           Join thousands of satisfied customers who found their perfect home with us. Our expert team is here to help you every step of the way.
         </p>
-        <Link href="/properties">
+        <Link href={`/${locale}/properties`}>
           <Button
             variant="white"
             size="lg"
-            className="hover:scale-105"
+            className="hover:scale-105 font-bold"
           >
             Browse All Properties
           </Button>

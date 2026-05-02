@@ -158,9 +158,9 @@ export default function AdminPropertiesClient() {
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
-          <div className="relative group shrink-0 w-full sm:w-48">
+          <div className="relative group shrink-0 w-full sm:w-56">
             <select 
-              className="w-full px-4 md:px-6 py-3 md:py-4 bg-white border-2 border-gray-100 rounded-xl md:rounded-2xl outline-none focus:border-primary transition-all font-bold text-[10px] md:text-sm appearance-none cursor-pointer pr-10"
+              className="w-full px-4 md:px-6 py-3 md:py-4 bg-white border-2 border-gray-100 rounded-xl md:rounded-2xl outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all font-bold text-[10px] md:text-xs appearance-none cursor-pointer pr-10 md:pr-12 uppercase tracking-widest text-gray-500"
               value={filterStatus}
               onChange={(e) => setFilterStatus(e.target.value)}
             >
@@ -169,7 +169,7 @@ export default function AdminPropertiesClient() {
               <option value="approved">Published</option>
               <option value="rejected">Rejected</option>
             </select>
-            <ChevronDown size={16} className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none group-focus-within:text-primary" />
+            <ChevronDown size={18} className="absolute right-4 md:right-5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none group-focus-within:text-primary transition-colors" strokeWidth={3} />
           </div>
         </div>
 

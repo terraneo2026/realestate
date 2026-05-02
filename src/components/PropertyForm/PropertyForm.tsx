@@ -10,6 +10,7 @@ import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { 
   ChevronRight, 
   ChevronLeft, 
+  ChevronDown,
   Plus, 
   Trash2, 
   Upload, 
@@ -173,7 +174,18 @@ export default function PropertyForm({ propertyId }: { propertyId?: string }) {
         setProjects(projSnap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
         
         const catSnap = await getDocs(collection(firestore, 'categories'));
-        setCategories(catSnap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+        const cats = catSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        if (cats.length > 0) {
+          setCategories(cats);
+        } else {
+          // Fallback categories for better UX if none exist in DB
+          setCategories([
+            { id: 'residential', name: 'Residential' },
+            { id: 'commercial', name: 'Commercial' },
+            { id: 'villa', name: 'Villa' },
+            { id: 'apartment', name: 'Apartment' }
+          ]);
+        }
       } catch (error) {
         console.error("Error fetching form data:", error);
       }
@@ -322,6 +334,8 @@ export default function PropertyForm({ propertyId }: { propertyId?: string }) {
       
       if (pathname?.includes('/admin/')) {
         router.push(`/${locale}/admin/properties`);
+      } else if (pathname?.includes('/agent/')) {
+        router.push(`/${locale}/agent/listings`);
       } else {
         router.push(`/${locale}/owner/properties`);
       }
@@ -401,13 +415,16 @@ export default function PropertyForm({ propertyId }: { propertyId?: string }) {
                 {watchProjectType === 'existing' ? (
                   <div className="space-y-2">
                     <label className="text-[9px] md:text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Select Project</label>
-                    <select 
-                      {...register('projectId')}
-                      className="w-full px-4 py-3 md:px-6 md:py-4 bg-gray-50 border-2 border-gray-100 rounded-xl md:rounded-2xl focus:border-primary focus:ring-4 focus:ring-primary/10 outline-none transition-all font-bold text-gray-800 text-xs md:text-base"
-                    >
-                      <option value="">Choose Project</option>
-                      {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-                    </select>
+                    <div className="relative group">
+                      <select 
+                        {...register('projectId')}
+                        className="w-full px-4 py-3 md:px-6 md:py-4 bg-gray-50 border-2 border-gray-100 rounded-xl md:rounded-2xl focus:border-primary focus:ring-4 focus:ring-primary/10 outline-none transition-all font-bold text-gray-800 text-xs md:text-base appearance-none pr-10 md:pr-12"
+                      >
+                        <option value="">Choose Project</option>
+                        {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                      </select>
+                      <ChevronDown className="absolute right-4 md:right-6 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none group-focus-within:text-primary" size={20} />
+                    </div>
                   </div>
                 ) : (
                   <>
@@ -482,29 +499,35 @@ export default function PropertyForm({ propertyId }: { propertyId?: string }) {
 
                 <div className="space-y-2">
                    <label className="text-[9px] md:text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Property Category</label>
-                   <select 
-                     {...register('category')}
-                     className="w-full px-4 py-3 md:px-6 md:py-4 bg-gray-50 border-2 border-gray-100 rounded-xl md:rounded-2xl focus:border-primary focus:ring-4 focus:ring-primary/10 outline-none transition-all font-bold text-xs md:text-base"
-                   >
-                     <option value="">Select Category</option>
-                     {categories.map(c => <option key={c.id} value={c.id}>{c.category || c.name || 'Untitled Category'}</option>)}
-                   </select>
+                   <div className="relative group">
+                     <select 
+                       {...register('category')}
+                       className="w-full px-4 py-3 md:px-6 md:py-4 bg-gray-50 border-2 border-gray-100 rounded-xl md:rounded-2xl focus:border-primary focus:ring-4 focus:ring-primary/10 outline-none transition-all font-bold text-xs md:text-base appearance-none pr-10 md:pr-12"
+                     >
+                       <option value="">Select Category</option>
+                       {categories.map(c => <option key={c.id} value={c.id}>{c.category || c.name || 'Untitled Category'}</option>)}
+                     </select>
+                     <ChevronDown className="absolute right-4 md:right-6 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none group-focus-within:text-primary" size={20} />
+                   </div>
                 </div>
 
                 <div className="space-y-2">
                    <label className="text-[9px] md:text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Property Type</label>
-                   <select 
-                     {...register('propertyType')}
-                     className="w-full px-4 py-3 md:px-6 md:py-4 bg-gray-50 border-2 border-gray-100 rounded-xl md:rounded-2xl focus:border-primary focus:ring-4 focus:ring-primary/10 outline-none transition-all font-bold text-xs md:text-base"
-                   >
-                     <option value="Apartment">Apartment</option>
-                     <option value="Villa">Villa</option>
-                     <option value="Penthouse">Penthouse</option>
-                     <option value="Studio">Studio</option>
-                     <option value="Office Space">Office Space</option>
-                     <option value="Shop">Shop</option>
-                     <option value="Warehouse">Warehouse</option>
-                   </select>
+                   <div className="relative group">
+                     <select 
+                       {...register('propertyType')}
+                       className="w-full px-4 py-3 md:px-6 md:py-4 bg-gray-50 border-2 border-gray-100 rounded-xl md:rounded-2xl focus:border-primary focus:ring-4 focus:ring-primary/10 outline-none transition-all font-bold text-xs md:text-base appearance-none pr-10 md:pr-12"
+                     >
+                       <option value="Apartment">Apartment</option>
+                       <option value="Villa">Villa</option>
+                       <option value="Penthouse">Penthouse</option>
+                       <option value="Studio">Studio</option>
+                       <option value="Office Space">Office Space</option>
+                       <option value="Shop">Shop</option>
+                       <option value="Warehouse">Warehouse</option>
+                     </select>
+                     <ChevronDown className="absolute right-4 md:right-6 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none group-focus-within:text-primary" size={20} />
+                   </div>
                 </div>
 
                 <div className="space-y-2">
@@ -585,11 +608,14 @@ export default function PropertyForm({ propertyId }: { propertyId?: string }) {
                       </div>
                       <div className="flex flex-col gap-2">
                          <label className="text-[8px] font-black text-gray-400 uppercase tracking-widest ml-1">Applies To</label>
-                         <select className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl outline-none font-bold text-[10px] uppercase">
-                            <option value="both">Both</option>
-                            <option value="tenant">Tenant Only</option>
-                            <option value="owner">Owner Only</option>
-                         </select>
+                         <div className="relative group">
+                            <select className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl outline-none font-bold text-[10px] uppercase appearance-none pr-10">
+                               <option value="both" className="bg-gray-900">Both</option>
+                               <option value="tenant" className="bg-gray-900">Tenant Only</option>
+                               <option value="owner" className="bg-gray-900">Owner Only</option>
+                            </select>
+                            <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none group-focus-within:text-primary" size={14} />
+                         </div>
                       </div>
                    </div>
                 </div>
@@ -666,15 +692,18 @@ export default function PropertyForm({ propertyId }: { propertyId?: string }) {
                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 md:gap-6 mb-6 md:mb-8">
                         <div className="space-y-2">
                            <label className="text-[8px] md:text-[9px] font-black text-gray-400 uppercase tracking-widest ml-1">Room Type</label>
-                           <select 
-                             {...register(`bedrooms.${index}.type` as const)}
-                             className="w-full px-4 py-3 bg-white border-2 border-gray-100 rounded-xl md:rounded-2xl focus:border-primary outline-none transition-all font-bold text-xs md:text-sm"
-                           >
-                             {[
-                               "Master Bedroom", "Children’s Bedroom", "Guest Bedroom", 
-                               "Secondary Bedroom", "Study / Home Office", "Servant Room", "Common Bedroom"
-                             ].map(t => <option key={t} value={t}>{t}</option>)}
-                           </select>
+                           <div className="relative group">
+                             <select 
+                               {...register(`bedrooms.${index}.type` as const)}
+                               className="w-full px-4 py-3 bg-white border-2 border-gray-100 rounded-xl md:rounded-2xl focus:border-primary outline-none transition-all font-bold text-xs md:text-sm appearance-none pr-10"
+                             >
+                               {[
+                                 "Master Bedroom", "Children’s Bedroom", "Guest Bedroom", 
+                                 "Secondary Bedroom", "Study / Home Office", "Servant Room", "Common Bedroom"
+                               ].map(t => <option key={t} value={t}>{t}</option>)}
+                             </select>
+                             <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none group-focus-within:text-primary" size={16} />
+                           </div>
                         </div>
                         <div className="space-y-2">
                            <label className="text-[8px] md:text-[9px] font-black text-gray-400 uppercase tracking-widest ml-1">Room Size</label>
@@ -706,13 +735,16 @@ export default function PropertyForm({ propertyId }: { propertyId?: string }) {
                         
                         {watch(`bedrooms.${index}.hasBathroom`) && (
                           <div className="flex-1 flex gap-4 sm:ml-8 animate-in fade-in slide-in-from-left-4 duration-300">
-                             <select 
-                               {...register(`bedrooms.${index}.bathroom.type` as const)}
-                               className="w-full sm:w-auto px-4 py-2 bg-gray-50 border-2 border-gray-100 rounded-xl text-[10px] font-black uppercase"
-                             >
-                               <option value="western">Western</option>
-                               <option value="indian">Indian</option>
-                             </select>
+                             <div className="relative group flex-1 sm:flex-initial">
+                               <select 
+                                 {...register(`bedrooms.${index}.bathroom.type` as const)}
+                                 className="w-full sm:w-auto px-4 py-2 bg-gray-50 border-2 border-gray-100 rounded-xl text-[10px] font-black uppercase appearance-none pr-8"
+                               >
+                                 <option value="western">Western</option>
+                                 <option value="indian">Indian</option>
+                               </select>
+                               <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none group-focus-within:text-primary" size={14} />
+                             </div>
                           </div>
                         )}
                      </div>

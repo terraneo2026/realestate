@@ -59,6 +59,13 @@ export default function LoginClient({ locale, role }: LoginClientProps) {
     setServerError(null);
 
     try {
+      // 1. Client-side Firebase Authentication
+      // This is crucial so that auth.currentUser and onAuthStateChanged work correctly
+      const { signInWithEmailAndPassword } = await import("firebase/auth");
+      const { auth: firebaseAuth } = await import("@/lib/firebase");
+      await signInWithEmailAndPassword(firebaseAuth, data.email, data.password);
+
+      // 2. Server-side Session (Cookie)
       const response = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },

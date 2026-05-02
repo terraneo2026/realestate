@@ -73,6 +73,12 @@ export default function UnifiedRegisterForm({ initialRole, locale }: UnifiedRegi
         return;
       }
 
+      // 2. Client-side Firebase Authentication
+      // Log in on the client so that the session is maintained in the browser
+      const { signInWithEmailAndPassword } = await import("firebase/auth");
+      const { auth: firebaseAuth } = await import("@/lib/firebase");
+      await signInWithEmailAndPassword(firebaseAuth, data.email, data.password);
+
       toast.success("Account created successfully!");
       
       // Save profile to localStorage for UI persistence

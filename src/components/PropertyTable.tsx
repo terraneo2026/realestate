@@ -142,17 +142,20 @@ const PropertyTable = ({ role }: PropertyTableProps) => {
         </div>
         
         <div className="flex gap-4 w-full lg:w-auto">
-           <select 
-             className="flex-1 lg:flex-none px-8 py-5 bg-gray-50 border-2 border-gray-100 rounded-3xl focus:border-primary outline-none transition-all font-black text-[10px] uppercase tracking-widest text-gray-500"
-             value={filterStatus}
-             onChange={(e) => setFilterStatus(e.target.value)}
-           >
-             <option value="all">All Status</option>
-             <option value="published">Published</option>
-             <option value="pending">Pending</option>
-             <option value="rejected">Rejected</option>
-             <option value="inactive">Inactive</option>
-           </select>
+           <div className="relative group flex-1 lg:flex-none">
+             <select 
+               className="w-full lg:w-auto px-8 py-5 bg-gray-50 border-2 border-gray-100 rounded-3xl focus:border-primary outline-none transition-all font-black text-[10px] uppercase tracking-widest text-gray-500 appearance-none pr-14"
+               value={filterStatus}
+               onChange={(e) => setFilterStatus(e.target.value)}
+             >
+               <option value="all">All Status</option>
+               <option value="published">Published</option>
+               <option value="pending">Pending</option>
+               <option value="rejected">Rejected</option>
+               <option value="inactive">Inactive</option>
+             </select>
+             <ChevronDown className="absolute right-6 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none group-focus-within:text-primary transition-colors" size={20} />
+           </div>
            
            <button className="p-5 bg-gray-900 text-white rounded-3xl shadow-xl shadow-gray-900/20 hover:bg-black transition-all">
              <Filter size={20} />
@@ -279,7 +282,7 @@ const PropertyTable = ({ role }: PropertyTableProps) => {
                           <ExternalLink size={18} />
                         </Link>
                         <Link 
-                          href={`/${locale}/owner/edit-property/${prop.id}`}
+                          href={`/${locale}/${role === 'admin' ? 'admin/properties/' + prop.id + '/edit' : role + '/edit-property/' + prop.id}`}
                           className="p-3 bg-gray-50 text-gray-600 rounded-2xl hover:bg-primary hover:text-white transition-all shadow-sm border border-gray-100"
                           title="Edit Listing"
                         >

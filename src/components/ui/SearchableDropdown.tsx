@@ -100,7 +100,7 @@ export function SearchableDropdown({
             </div>
           </div>
           
-          <ul className="max-h-[250px] overflow-y-auto py-2 scrollbar-hide">
+          <ul className="max-h-[300px] overflow-y-auto py-2 custom-scrollbar">
             {filteredOptions.length > 0 ? (
               filteredOptions.map((opt) => (
                 <li

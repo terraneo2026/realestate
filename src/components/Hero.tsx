@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState } from 'react';
-import { ChevronDown } from 'lucide-react';
+import { ChevronDown, Loader2 } from 'lucide-react';
+import { firestore } from '@/lib/firebase';
+import { collection, getDocs } from 'firebase/firestore';
 
 interface SearchFilters {
   type: string;
@@ -16,6 +17,7 @@ interface SearchFilterSectionProps {
   setSearchFilters: (filters: SearchFilters) => void;
   handleFilterChange: (e: React.ChangeEvent<HTMLSelectElement | HTMLInputElement>) => void;
   handleSearch: () => void;
+  categories: any[];
 }
 
 const Hero = () => {
@@ -28,6 +30,30 @@ const Hero = () => {
     maxPrice: '',
     bedrooms: ''
   });
+  const [categories, setCategories] = useState<any[]>([]);
+
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const catSnap = await getDocs(collection(firestore, "categories"));
+        const cats = catSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        if (cats.length > 0) {
+          setCategories(cats);
+        } else {
+          // Fallback
+          setCategories([
+            { id: 'apartment', name: 'Apartment' },
+            { id: 'villa', name: 'Villa' },
+            { id: 'house', name: 'House' },
+            { id: 'commercial', name: 'Commercial' }
+          ]);
+        }
+      } catch (err) {
+        console.error("Error fetching categories:", err);
+      }
+    };
+    fetchCategories();
+  }, []);
 
   // Property images for circular carousel
   const propertyImages = [
@@ -98,6 +124,7 @@ const Hero = () => {
             setSearchFilters={setSearchFilters}
             handleFilterChange={handleFilterChange}
             handleSearch={handleSearch}
+            categories={categories}
           />
         </div>
       </div>
@@ -186,10 +213,11 @@ const SearchFilterSection = ({
   searchFilters, 
   setSearchFilters, 
   handleFilterChange, 
-  handleSearch 
+  handleSearch,
+  categories
 }: SearchFilterSectionProps) => {
   return (
-    <div className="bg-white shadow-2xl rounded-2xl border border-gray-100 overflow-hidden transform transition-all duration-300">
+    <div className="bg-white shadow-2xl rounded-2xl border border-gray-100 transform transition-all duration-300">
       <div className="px-5 sm:px-8 py-8 md:py-10">
         {/* Property Type Tabs - Compact and aligned */}
         <div className="flex gap-1 mb-8 border-b border-gray-100 overflow-x-auto no-scrollbar pb-1">
@@ -246,14 +274,14 @@ const SearchFilterSection = ({
               <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 z-30 text-xl">�️</span>
               <select
                 name="propertyType"
+                value={searchFilters.propertyType}
                 onChange={handleFilterChange}
                 className="w-full pl-12 pr-10 py-4 border-2 border-gray-100 rounded-2xl text-gray-900 text-base font-medium focus:outline-none focus:ring-4 focus:ring-primary/10 focus:border-primary transition bg-gray-50/50 relative z-20 shadow-sm hover:shadow-md appearance-none cursor-pointer"
               >
-                <option value="">All Types</option>
-                <option value="apartment">Apartment</option>
-                <option value="villa">Villa</option>
-                <option value="house">House</option>
-                <option value="commercial">Commercial</option>
+                <option value="">All Categories</option>
+                {categories.map(cat => (
+                  <option key={cat.id} value={cat.id}>{cat.name || cat.category}</option>
+                ))}
               </select>
               <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 z-30 pointer-events-none">
                 <ChevronDown size={18} />

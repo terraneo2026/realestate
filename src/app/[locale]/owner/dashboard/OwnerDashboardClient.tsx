@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import { auth, firestore } from "@/lib/firebase";
+import { onAuthStateChanged } from "firebase/auth";
 import { doc, getDoc, collection, query, where, getDocs, limit, orderBy } from "firebase/firestore";
 import StatsCard from "@/components/StatsCard";
 import DashboardLayout from "@/components/DashboardLayout";
@@ -25,7 +26,9 @@ import {
   Wallet,
   ShieldCheck,
   MapPin,
-  FileText
+  FileText,
+  Building2,
+  User as UserIcon
 } from "lucide-react";
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
@@ -57,16 +60,22 @@ export default function OwnerDashboardClient() {
   const [pendingApprovals, setPendingApprovals] = useState<any[]>([]);
 
   useEffect(() => {
-    const fetchOwnerData = async () => {
-      const user = auth.currentUser;
-      if (!user) {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        fetchOwnerData(user.uid);
+      } else {
         setLoading(false);
-        return;
       }
+    });
 
-      try {
-        // 1. Fetch User Profile
-        const userDoc = await getDoc(doc(firestore, "users", user.uid));
+    return () => unsubscribe();
+  }, []);
+
+  const fetchOwnerData = async (userId: string) => {
+    try {
+      setLoading(true);
+      // 1. Fetch User Profile
+      const userDoc = await getDoc(doc(firestore, "users", userId));
         if (userDoc.exists()) {
           const data = userDoc.data();
           setUserData(data);
@@ -84,7 +93,7 @@ export default function OwnerDashboardClient() {
         // 2. Fetch Properties
         const propsQ = query(
           collection(firestore, "properties"),
-          where("ownerId", "==", user.uid)
+          where("ownerId", "==", userId)
         );
         const propsSnap = await getDocs(propsQ);
         const props = propsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -99,7 +108,7 @@ export default function OwnerDashboardClient() {
         // 3. Fetch Bookings (Leads)
         const bookingsQ = query(
           collection(firestore, "bookings"),
-          where("ownerId", "==", user.uid)
+          where("ownerId", "==", userId)
         );
         const bookingsSnap = await getDocs(bookingsQ);
         const bookings = bookingsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -125,9 +134,6 @@ export default function OwnerDashboardClient() {
         setLoading(false);
       }
     };
-
-    fetchOwnerData();
-  }, []);
 
   if (loading) {
     return (
@@ -325,11 +331,11 @@ export default function OwnerDashboardClient() {
             <h2 className="text-2xl font-black text-gray-900 tracking-tight mb-8">Quick Actions</h2>
             <div className="space-y-4">
               {[
-                { label: 'Manage Properties', href: `/${locale}/owner/properties`, icon: <Home size={18} />, color: 'primary' },
+                { label: 'Manage Properties', href: `/${locale}/owner/properties`, icon: <Building2 size={18} />, color: 'primary' },
                 { label: 'View Analytics', href: `/${locale}/owner/analytics`, icon: <BarChart3 size={18} />, color: 'blue' },
                 { label: 'My Bookings', href: `/${locale}/owner/bookings`, icon: <Calendar size={18} />, color: 'orange' },
                 { label: 'Payment History', href: `/${locale}/owner/payments`, icon: <Wallet size={18} />, color: 'green' },
-                { label: 'Account Profile', href: `/${locale}/owner/profile`, icon: <Users size={18} />, color: 'gray' },
+                { label: 'Account Profile', href: `/${locale}/owner/profile`, icon: <UserIcon size={18} />, color: 'gray' },
               ].map((action) => (
                 <Link key={action.label} href={action.href}>
                   <div className="flex items-center justify-between p-4 rounded-2xl bg-gray-50 hover:bg-white hover:shadow-xl hover:shadow-gray-200/30 border border-gray-50 hover:border-primary/10 transition-all group mb-2">

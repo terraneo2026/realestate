@@ -17,7 +17,8 @@ import {
   CheckCircle2, 
   Clock, 
   XCircle,
-  FileText
+  FileText,
+  ChevronDown
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -44,12 +45,11 @@ export default function OwnerPaymentsPage() {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       if (user) {
         fetchPayments(user.uid);
-      } else {
-        router.push(`/${locale}/login`);
       }
     });
+
     return () => unsubscribe();
-  }, [locale, router]);
+  }, []);
 
   const fetchPayments = async (ownerId: string) => {
     try {
@@ -162,16 +162,19 @@ export default function OwnerPaymentsPage() {
         </div>
         
         <div className="flex gap-4 w-full lg:w-auto">
-           <select 
-             className="flex-1 lg:flex-none px-8 py-5 bg-gray-50 border-2 border-gray-100 rounded-3xl focus:border-primary outline-none transition-all font-black text-[10px] uppercase tracking-widest text-gray-500"
-             value={filterStatus}
-             onChange={(e) => setFilterStatus(e.target.value)}
-           >
-             <option value="all">All Status</option>
-             <option value="completed">Completed</option>
-             <option value="pending">Pending</option>
-             <option value="failed">Failed</option>
-           </select>
+           <div className="relative group flex-1 lg:flex-none">
+             <select 
+               className="w-full lg:w-auto px-8 py-5 bg-gray-50 border-2 border-gray-100 rounded-3xl focus:border-primary outline-none transition-all font-black text-[10px] uppercase tracking-widest text-gray-500 appearance-none pr-14"
+               value={filterStatus}
+               onChange={(e) => setFilterStatus(e.target.value)}
+             >
+               <option value="all">All Status</option>
+               <option value="completed">Completed</option>
+               <option value="pending">Pending</option>
+               <option value="failed">Failed</option>
+             </select>
+             <ChevronDown className="absolute right-6 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none group-focus-within:text-primary transition-colors" size={20} />
+           </div>
            <button className="p-5 bg-gray-900 text-white rounded-3xl shadow-xl shadow-gray-900/20 hover:bg-black transition-all">
              <Filter size={20} />
            </button>

@@ -16,7 +16,11 @@ interface SavedProperty {
   slug: string;
 }
 
+import { useParams } from "next/navigation";
+import Link from "next/link";
+
 export default function FavoritesPage() {
+  const { locale } = useParams();
   const [favorites, setFavorites] = useState<SavedProperty[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -37,12 +41,12 @@ export default function FavoritesPage() {
           <p className="text-gray-600 text-lg mb-4">
             You haven't saved any properties yet.
           </p>
-          <a
-            href="/properties"
+          <Link
+            href={`/${locale}/properties`}
             className="inline-block primaryBg text-white px-6 py-2 rounded-lg font-semibold hover:bg-opacity-90 transition-all"
           >
             Browse Properties
-          </a>
+          </Link>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

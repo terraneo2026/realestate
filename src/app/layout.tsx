@@ -28,9 +28,10 @@ export default function RootLayout({
   return (
     <html
       lang="en"
+      suppressHydrationWarning
       className={`${montserrat.variable} ${openSans.variable} h-full antialiased overflow-x-hidden`}
     >
-      <body className="min-h-full flex flex-col overflow-x-hidden">
+      <body suppressHydrationWarning className="min-h-full flex flex-col overflow-x-hidden">
         {children}
         <Toaster position="top-right" richColors />
       </body>

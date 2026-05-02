@@ -97,6 +97,13 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
   const onSignIn = async (data: any) => {
     setLoading(true);
     try {
+      // 1. Client-side Firebase Authentication
+      // This is crucial so that auth.currentUser and onAuthStateChanged work correctly
+      const { signInWithEmailAndPassword } = await import("firebase/auth");
+      const { auth: firebaseAuth } = await import("@/lib/firebase");
+      await signInWithEmailAndPassword(firebaseAuth, data.email, data.password);
+
+      // 2. Server-side Session (Cookie)
       const response = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -121,8 +128,12 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
       const redirectPath = result.role === 'admin' 
         ? `/${locale}/admin` 
         : `/${locale}/${result.role}/dashboard`;
+      
+      toast.success("Login successful!");
+      onClose();
       router.push(redirectPath);
     } catch (err: any) {
+      console.error("Login error:", err);
       toast.error(err.message || "Invalid email or password");
     } finally {
       setLoading(false);
@@ -133,6 +144,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
     setLoading(true);
     setServerError(null);
     try {
+      // 1. Server-side registration (handles mobile check and firestore creation)
       const response = await fetch("/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -146,6 +158,12 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
         return;
       }
 
+      // 2. Client-side Firebase Authentication
+      // Log in on the client so that the session is maintained in the browser
+      const { signInWithEmailAndPassword } = await import("firebase/auth");
+      const { auth: firebaseAuth } = await import("@/lib/firebase");
+      await signInWithEmailAndPassword(firebaseAuth, data.email, data.password);
+
       // Save profile to localStorage for UI persistence
       localStorage.setItem('userProfile', JSON.stringify({
         fullName: result.fullName,
@@ -158,8 +176,12 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
       const redirectPath = result.role === 'admin' 
         ? `/${locale}/admin` 
         : `/${locale}/${result.role}/dashboard`;
+      
+      toast.success("Account created successfully!");
+      onClose();
       router.push(redirectPath);
     } catch (err: any) {
+      console.error("Registration error:", err);
       setServerError("An unexpected error occurred. Please try again.");
     } finally {
       setLoading(false);

@@ -55,12 +55,11 @@ export default function OwnerBookingsPage() {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       if (user) {
         fetchBookings(user.uid);
-      } else {
-        router.push(`/${locale}/login`);
       }
     });
+
     return () => unsubscribe();
-  }, [locale, router]);
+  }, []);
 
   const fetchBookings = async (ownerId: string) => {
     try {

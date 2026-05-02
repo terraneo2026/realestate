@@ -182,6 +182,8 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
 
   if (!authorized) return null;
 
+  const isExpanded = isSidebarOpen || isHovered;
+
   return (
     <div className="min-h-screen bg-[#F2F4F7] flex font-sans selection:bg-black/10 selection:text-black relative overflow-x-hidden">
       <style jsx global>{`
@@ -209,32 +211,48 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
         className={cn(
           "fixed lg:sticky top-0 z-50 h-screen transition-all duration-500 ease-[cubic-bezier(0.23,1,0.32,1)] flex flex-col no-scrollbar",
           "bg-white border-r border-gray-100 shadow-2xl shrink-0 group/sidebar",
-          isSidebarOpen ? "w-64 translate-x-0" : "w-0 lg:w-20 -translate-x-full lg:translate-x-0"
+          isExpanded ? "w-72" : "w-0 lg:w-20",
+          isSidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
         )}
       >
-        <div className="h-[80px] flex items-center px-6 shrink-0 overflow-hidden">
+        {/* Logo Section */}
+        <div className={cn("h-[100px] flex items-center shrink-0 relative transition-all duration-500", isExpanded ? "px-6" : "px-5")}>
           <Link href={`/${locale}/admin`} className="flex items-center gap-4 group/logo">
             <div className="w-10 h-10 bg-[#087c7c] rounded-2xl flex items-center justify-center shadow-lg shadow-[#087c7c]/20 group-hover/logo:scale-110 transition-all duration-500 shrink-0">
               <ShieldCheck className="text-white" size={20} />
             </div>
             <div className={cn(
               "flex flex-col transition-all duration-500",
-              isSidebarOpen ? "opacity-100 translate-x-0" : "opacity-0 -translate-x-4 pointer-events-none"
+              isExpanded ? "opacity-100 translate-x-0" : "opacity-0 -translate-x-4 pointer-events-none"
             )}>
               <span className="text-lg font-black text-gray-900 tracking-tight leading-none">Relocate</span>
               <span className="text-[10px] font-black text-[#087c7c] uppercase tracking-[0.2em] mt-1">Admin Panel</span>
             </div>
           </Link>
-          <button
-            onClick={() => setSidebarOpen(!isSidebarOpen)}
-            className={cn(
-              "absolute -right-3 top-1/2 -translate-y-1/2 w-6 h-6 bg-[#087c7c] text-white rounded-full flex items-center justify-center shadow-lg transition-all duration-500 hover:scale-110",
-              !isSidebarOpen && !isHovered && "opacity-0 scale-0"
-            )}
-          >
-            {isSidebarOpen ? <ChevronLeft size={14} strokeWidth={3} /> : <ChevronRight size={14} strokeWidth={3} />}
-          </button>
         </div>
+
+        {/* Sidebar Toggle Button - Centered on Sidebar Height */}
+        <button
+          onClick={() => {
+            const newState = !isSidebarOpen;
+            setSidebarOpen(newState);
+            localStorage.setItem('adminSidebarOpen', String(newState));
+          }}
+          className={cn(
+            "absolute -right-3 top-1/2 -translate-y-1/2 w-6 h-6 bg-[#087c7c] text-white rounded-full hidden lg:flex items-center justify-center shadow-lg transition-all duration-500 hover:scale-110 z-[60]",
+            !isExpanded && "opacity-0 scale-0"
+          )}
+        >
+          {isSidebarOpen ? <ChevronLeft size={14} strokeWidth={3} /> : <ChevronRight size={14} strokeWidth={3} />}
+        </button>
+
+        {/* Mobile Close Button */}
+        <button
+          onClick={() => setSidebarOpen(false)}
+          className="absolute right-4 top-8 p-2 text-gray-400 hover:text-[#087c7c] transition-all lg:hidden"
+        >
+          <X size={20} />
+        </button>
 
         <nav
           style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
@@ -243,7 +261,6 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
           {navItems.map((item) => {
             const isActive = pathname === item.href;
             const Icon = item.icon;
-            const isExpanded = isSidebarOpen;
 
             return (
               <Link
@@ -251,7 +268,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
                 href={item.href}
                 className={cn(
                   "group flex items-center rounded-2xl transition-all duration-300 relative",
-                  isExpanded ? "px-4 py-2.5 gap-4" : "p-3 justify-center",
+                  isExpanded ? "px-4 py-3 gap-4" : "p-3.5 justify-center",
                   isActive
                     ? 'bg-[#087c7c] text-white shadow-xl shadow-[#087c7c]/20'
                     : 'text-gray-500 hover:bg-gray-50 hover:text-[#087c7c]'
@@ -270,27 +287,19 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
                 </span>
 
                 {!isExpanded && (
-                  <div className="absolute left-full ml-6 px-4 py-2 bg-[#087c7c] text-white text-[10px] font-black uppercase tracking-[0.2em] rounded-xl opacity-0 group-hover:opacity-100 translate-x-4 group-hover:translate-x-0 transition-all duration-300 pointer-events-none z-[100] whitespace-nowrap shadow-2xl shadow-[#087c7c]/40 flex items-center gap-2">
-                    <div className="absolute left-[-4px] top-1/2 -translate-y-1/2 w-2 h-2 bg-[#087c7c] rotate-45" />
+                  <div className="absolute left-full ml-4 px-3 py-2 bg-[#087c7c] text-white text-[10px] font-black uppercase tracking-widest rounded-xl opacity-0 group-hover:opacity-100 translate-x-2 group-hover:translate-x-0 transition-all pointer-events-none z-[100] whitespace-nowrap shadow-2xl">
                     {item.name}
                   </div>
-                )}
-
-                {isActive && (
-                  <div className={cn(
-                    "absolute right-2 w-1.5 h-1.5 bg-white rounded-full",
-                    !isExpanded && "hidden"
-                  )} />
                 )}
               </Link>
             );
           })}
         </nav>
 
-        <div className="p-4 border-t border-gray-100">
+        <div className="p-4 border-t border-gray-100 shrink-0">
           <div className={cn(
             "flex items-center mb-4 transition-all duration-500 overflow-hidden",
-            (isSidebarOpen || isHovered) ? "px-2 gap-3" : "px-0 justify-center"
+            isExpanded ? "px-2 gap-3" : "px-0 justify-center"
           )}>
             <div className="w-10 h-10 rounded-xl overflow-hidden border-2 border-gray-100 shrink-0">
               {userProfile?.photoURL ? (
@@ -303,7 +312,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
             </div>
             <div className={cn(
               "flex-1 min-w-0 transition-all duration-500",
-              (isSidebarOpen || isHovered) ? "opacity-100" : "opacity-0 w-0"
+              isExpanded ? "opacity-100" : "opacity-0 w-0"
             )}>
               <p className="text-xs font-bold text-gray-900 truncate">{userProfile?.fullName || 'Administrator'}</p>
               <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Admin</p>
@@ -314,19 +323,19 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
             onClick={handleLogout}
             className={cn(
               "w-full flex items-center rounded-2xl transition-all duration-300 relative group/logout",
-              (isSidebarOpen || isHovered) ? "px-4 py-3.5 gap-4" : "p-3.5 justify-center",
+              isExpanded ? "px-4 py-3.5 gap-4" : "p-3.5 justify-center",
               "text-gray-500 hover:bg-red-50 hover:text-red-500"
             )}
           >
             <LogOut size={20} className="shrink-0 transition-transform group-hover/logout:-translate-x-1" />
             <span className={cn(
               "text-sm font-bold tracking-tight transition-all duration-300",
-              (isSidebarOpen || isHovered) ? "opacity-100" : "opacity-0 absolute"
+              isExpanded ? "opacity-100" : "opacity-0 absolute"
             )}>
               Logout
             </span>
 
-            {!(isSidebarOpen || isHovered) && (
+            {!isExpanded && (
               <div className="absolute left-full ml-4 px-3 py-2 bg-red-500 text-white text-[10px] font-black uppercase tracking-widest rounded-xl opacity-0 group-hover:opacity-100 translate-x-2 group-hover:translate-x-0 transition-all pointer-events-none z-[100] whitespace-nowrap shadow-2xl">
                 Logout
               </div>
@@ -336,7 +345,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
       </aside>
 
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col min-w-0 relative transition-all duration-500 ease-[cubic-bezier(0.23,1,0.32,1)]">
+      <div className="flex-1 flex flex-col min-w-0 relative bg-[#F2F4F7]">
         {/* Header */}
         <header className="h-[80px] lg:h-[100px] sticky top-0 z-40 bg-[#F2F4F7]/80 backdrop-blur-md lg:bg-transparent">
           <div className="h-full px-4 md:px-8 flex items-center justify-between max-w-[1800px] mx-auto w-full">

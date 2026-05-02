@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
-import { ChevronDown, Filter, X, Search, MapPin, Bed, Bath, Clock, Users, ShieldCheck, Home, Compass, Info } from "lucide-react";
+import { ChevronDown, Filter, X, Search, MapPin, Bed, Bath, Clock, Users, ShieldCheck, Home, Compass, Info, List } from "lucide-react";
+import { firestore } from "@/lib/firebase";
+import { collection, getDocs } from "firebase/firestore";
 import { SearchableDropdown } from "@/components/ui/SearchableDropdown";
 import { RangeSlider } from "@/components/ui/RangeSlider";
 import { clsx, type ClassValue } from "clsx";
@@ -28,6 +30,7 @@ export interface FilterState {
   possession: string;
   furnishing: string;
   facing: string;
+  category: string;
 }
 
 const PROPERTY_TYPES = [
@@ -66,6 +69,28 @@ const AMENITY_OPTIONS = [
 
 export default function FilterSidebar({ filters, onFilterChange }: FilterSidebarProps) {
   const [isMobileOpen, setIsMobileOpen] = useState(false);
+  const [categories, setCategories] = useState<any[]>([]);
+
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const catSnap = await getDocs(collection(firestore, "categories"));
+        const cats = catSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        if (cats.length > 0) {
+          setCategories(cats);
+        } else {
+          setCategories([
+            { id: 'apartment', name: 'Apartment' },
+            { id: 'villa', name: 'Villa' },
+            { id: 'commercial', name: 'Commercial' }
+          ]);
+        }
+      } catch (err) {
+        console.error("Error fetching categories:", err);
+      }
+    };
+    fetchCategories();
+  }, []);
 
   const handleChange = (name: keyof FilterState, value: any) => {
     onFilterChange({ ...filters, [name]: value });
@@ -92,6 +117,7 @@ export default function FilterSidebar({ filters, onFilterChange }: FilterSidebar
       possession: "all",
       furnishing: "all",
       facing: "all",
+      category: "all",
     });
   };
 
@@ -219,6 +245,23 @@ export default function FilterSidebar({ filters, onFilterChange }: FilterSidebar
             {/* Property Type Chips */}
             <FilterGroup label="Type" icon={<Home className="text-primary/70" size={14} />}>
               <ChipSelector options={PROPERTY_TYPES} value={filters.type} onChange={(val) => handleChange("type", val)} />
+            </FilterGroup>
+
+            {/* Dynamic Categories */}
+            <FilterGroup label="Category" icon={<List className="text-primary/70" size={14} />}>
+              <div className="relative group">
+                <select
+                  value={filters.category || 'all'}
+                  onChange={(e) => handleChange("category", e.target.value)}
+                  className="w-full px-4 py-3.5 bg-gray-50 border-2 border-gray-100 rounded-2xl focus:border-primary transition-all text-sm font-bold appearance-none pr-12"
+                >
+                  <option value="all">All Categories</option>
+                  {categories.map(cat => (
+                    <option key={cat.id} value={cat.id}>{cat.name || cat.category}</option>
+                  ))}
+                </select>
+                <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none group-focus-within:text-primary transition-colors" size={16} />
+              </div>
             </FilterGroup>
 
             {/* Posted By Chips */}

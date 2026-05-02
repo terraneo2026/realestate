@@ -157,12 +157,12 @@ export default function AboutUsClient() {
                 Join thousands of satisfied tenants and owners on India's most trusted rental platform.
               </p>
               <div className="flex flex-col sm:flex-row justify-center gap-6">
-                <Link href="/en/properties" className="w-full sm:w-auto">
-                  <Button variant="white" size="lg" className="w-full h-14 px-10 text-base font-black tracking-widest shadow-xl shadow-black/10 hover:scale-105 transition-transform active:scale-95">
+                <Link href={`/${locale}/properties`} className="w-full sm:w-auto">
+                  <button className="w-full px-8 py-4 bg-primary text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl shadow-primary/20 hover:scale-105 active:scale-95 transition-all">
                     Browse Properties
-                  </Button>
+                  </button>
                 </Link>
-                <Link href="/en/contact" className="w-full sm:w-auto">
+                <Link href={`/${locale}/contact`} className="w-full sm:w-auto">
                   <Button variant="white-outline" size="lg" className="w-full h-14 px-10 text-base font-black tracking-widest backdrop-blur-sm border-2 hover:bg-white/10 hover:scale-105 transition-transform active:scale-95">
                     Contact Our Team
                   </Button>

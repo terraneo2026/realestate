@@ -324,7 +324,7 @@ export default function AdminDashboardClient() {
         </div>
 
         {/* Top Metric Row */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 2xl:grid-cols-4 gap-4 md:gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
           <MetricCard 
             title="Total Revenue" 
             value={`₹${stats.revenueThisMonth.toLocaleString()}`}
@@ -360,10 +360,10 @@ export default function AdminDashboardClient() {
         </div>
 
         {/* Main Content Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-1 xl:grid-cols-12 gap-6 md:gap-10">
+        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-12 gap-6 md:gap-10">
           
           {/* Recent Listings (Col 8) */}
-          <div className="xl:col-span-8 space-y-6 md:space-y-8">
+          <div className="lg:col-span-1 xl:col-span-8 space-y-6 md:space-y-8">
             <div className="flex justify-between items-center">
               <h2 className="text-xl font-black text-gray-900 tracking-tight uppercase">Recent Listings</h2>
               <Link href={`/en/admin/properties`} className="text-xs font-bold text-primary hover:underline">View All Properties</Link>
@@ -392,7 +392,7 @@ export default function AdminDashboardClient() {
           </div>
 
           {/* Activity & Stats (Col 4) */}
-          <div className="xl:col-span-4 space-y-6 md:space-y-10">
+          <div className="lg:col-span-1 xl:col-span-4 space-y-6 md:space-y-10">
             <RecentActivity bookings={recentBookings} enquiries={recentLeads} />
             <PropertyStats stats={stats} />
           </div>

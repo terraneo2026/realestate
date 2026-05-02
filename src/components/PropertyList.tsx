@@ -24,6 +24,7 @@ interface Property {
   facing?: string;
   images?: string[];
   status: string;
+  category?: string;
   createdAt: Date;
 }
 
@@ -78,6 +79,7 @@ export default function PropertyList({
             facing: data.facing || 'East',
             images: data.images || [],
             status: data.status || 'active',
+            category: data.category || '',
             createdAt: (data.createdAt || data.created_at)?.toDate?.() || new Date(data.createdAt || data.created_at || 0)
           };
         });
@@ -128,6 +130,9 @@ export default function PropertyList({
     
     // Facing Filter
     if (filters?.facing && filters.facing !== 'all' && p.facing?.toLowerCase() !== filters.facing.toLowerCase()) return false;
+    
+    // Category Filter
+    if (filters?.category && filters.category !== 'all' && p.category !== filters.category) return false;
     
     // Amenities Filter
     if (filters?.amenities && filters.amenities.length > 0) {

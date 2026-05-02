@@ -59,65 +59,62 @@ function OwnerMessagesContent() {
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
-      if (!user) {
-        router.push(`/${locale}/login`);
-        return;
-      }
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        // Fetch conversations (grouping messages in JS for flexibility)
+        const q = query(
+          collection(firestore, "messages"),
+          where("participants", "array-contains", user.uid)
+        );
 
-      // Fetch conversations (grouping messages in JS for flexibility)
-      const q = query(
-        collection(firestore, "messages"),
-        where("participants", "array-contains", user.uid)
-      );
+        const unsubscribeMsgs = onSnapshot(q, (snap) => {
+          const msgs = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+          
+          // Sort by createdAt desc in JS
+          msgs.sort((a: any, b: any) => {
+            const dateA = a.createdAt?.toDate ? a.createdAt.toDate() : new Date(a.createdAt || 0);
+            const dateB = b.createdAt?.toDate ? b.createdAt.toDate() : new Date(b.createdAt || 0);
+            return dateB - dateA;
+          });
+          
+          // Group by other participant
+          const groups: { [key: string]: any } = {};
+          msgs.forEach((m: any) => {
+            const otherId = m.participants.find((p: string) => p !== user.uid);
+            if (!groups[otherId] || (m.createdAt && (!groups[otherId].lastMessageAt || m.createdAt.toDate() > groups[otherId].lastMessageAt.toDate()))) {
+              groups[otherId] = {
+                id: otherId,
+                lastMessage: m.text,
+                lastMessageAt: m.createdAt,
+                unreadCount: m.receiverId === user.uid && m.status === 'unread' ? 1 : 0,
+                otherName: m.senderId === user.uid ? m.receiverName : m.senderName,
+                otherImage: m.senderId === user.uid ? m.receiverImage : m.senderImage,
+                propertyId: m.propertyId,
+                propertyTitle: m.propertyTitle
+              };
+            } else if (m.receiverId === user.uid && m.status === 'unread') {
+              groups[otherId].unreadCount++;
+            }
+          });
 
-      const unsubscribeMsgs = onSnapshot(q, (snap) => {
-        const msgs = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        
-        // Sort by createdAt desc in JS
-        msgs.sort((a: any, b: any) => {
-          const dateA = a.createdAt?.toDate ? a.createdAt.toDate() : new Date(a.createdAt || 0);
-          const dateB = b.createdAt?.toDate ? b.createdAt.toDate() : new Date(b.createdAt || 0);
-          return dateB - dateA;
-        });
-        
-        // Group by other participant
-        const groups: { [key: string]: any } = {};
-        msgs.forEach((m: any) => {
-          const otherId = m.participants.find((p: string) => p !== user.uid);
-          if (!groups[otherId] || (m.createdAt && (!groups[otherId].lastMessageAt || m.createdAt.toDate() > groups[otherId].lastMessageAt.toDate()))) {
-            groups[otherId] = {
-              id: otherId,
-              lastMessage: m.text,
-              lastMessageAt: m.createdAt,
-              unreadCount: m.receiverId === user.uid && m.status === 'unread' ? 1 : 0,
-              otherName: m.senderId === user.uid ? m.receiverName : m.senderName,
-              otherImage: m.senderId === user.uid ? m.receiverImage : m.senderImage,
-              propertyId: m.propertyId,
-              propertyTitle: m.propertyTitle
-            };
-          } else if (m.receiverId === user.uid && m.status === 'unread') {
-            groups[otherId].unreadCount++;
+          const convList = Object.values(groups);
+          setConversations(convList);
+          
+          // Auto-select if userId in params
+          const targetUserId = searchParams?.get('userId');
+          if (targetUserId && (!selectedConversation || selectedConversation.id !== targetUserId)) {
+            const found = convList.find(c => c.id === targetUserId);
+            if (found) setSelectedConversation(found);
           }
+
+          setLoading(false);
         });
 
-        const convList = Object.values(groups);
-        setConversations(convList);
-        
-        // Auto-select if userId in params
-        const targetUserId = searchParams?.get('userId');
-        if (targetUserId && (!selectedConversation || selectedConversation.id !== targetUserId)) {
-          const found = convList.find(c => c.id === targetUserId);
-          if (found) setSelectedConversation(found);
-        }
-
-        setLoading(false);
-      });
-
-      return () => unsubscribeMsgs();
+        return () => unsubscribeMsgs();
+      }
     });
 
-    return () => unsubscribeAuth();
+    return () => unsubscribe();
   }, [locale, router, searchParams]);
 
   useEffect(() => {

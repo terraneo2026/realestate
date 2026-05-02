@@ -150,7 +150,7 @@ export default function AdminCategoriesClient() {
                           {cat.name?.charAt(0)}
                        </div>
                        <div className="flex-1 min-w-0">
-                          <h4 className="font-bold text-gray-900 text-[10px] md:text-sm tracking-tight truncate">{cat.name}</h4>
+                          <h4 className="font-bold text-gray-900 text-[10px] md:text-sm tracking-tight">{cat.name}</h4>
                           <p className="text-[9px] md:text-xs font-semibold text-gray-400 tracking-tight mt-0.5 md:mt-1">Order: {cat.order}</p>
                        </div>
                        <div className="flex items-center gap-1.5 md:gap-3 md:opacity-0 group-hover:opacity-100 transition-opacity">
@@ -249,15 +249,18 @@ export default function AdminCategoriesClient() {
                        />
                     </div>
                     <div className="space-y-2">
-                       <label className="text-[10px] md:text-xs font-semibold text-gray-400 tracking-tight ml-1">Status</label>
-                       <select 
-                         className="w-full px-4 py-3 md:px-6 md:py-4 bg-gray-50 border-2 border-gray-50 rounded-xl md:rounded-2xl focus:border-primary focus:bg-white outline-none transition-all font-semibold text-xs tracking-tight text-gray-500"
-                         value={newCategory.status}
-                         onChange={(e) => setNewCategory({ ...newCategory, status: e.target.value })}
-                       >
-                          <option value="active">Active</option>
-                          <option value="inactive">Inactive</option>
-                       </select>
+                       <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Status</label>
+                       <div className="relative group">
+                          <select 
+                             className="w-full px-4 py-3 md:px-6 md:py-4 bg-gray-50 border-2 border-gray-50 rounded-xl md:rounded-2xl focus:border-primary focus:bg-white outline-none transition-all font-semibold text-xs tracking-tight text-gray-500 appearance-none pr-10 md:pr-12"
+                             value={newCategory.status}
+                             onChange={(e) => setNewCategory({ ...newCategory, status: e.target.value })}
+                          >
+                             <option value="active">Active</option>
+                             <option value="inactive">Inactive</option>
+                          </select>
+                          <ChevronDown className="absolute right-4 md:right-6 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none group-focus-within:text-primary" size={18} />
+                       </div>
                     </div>
                  </div>
                  <div className="pt-4 md:pt-6 sticky bottom-0 bg-white">

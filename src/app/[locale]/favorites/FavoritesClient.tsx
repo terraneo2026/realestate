@@ -42,7 +42,7 @@ export default function FavoritesClient({ hideHeader = false }: { hideHeader?: b
             You haven't saved any properties yet.
           </p>
           <Link
-            href="/properties"
+            href={`/${locale}/properties`}
             className="inline-block primaryBg text-white px-8 py-3 rounded-xl font-bold shadow-lg shadow-primary/20 hover:scale-105 transition-all"
           >
             Browse Properties
